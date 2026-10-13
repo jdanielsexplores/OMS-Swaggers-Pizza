@@ -1,0 +1,26 @@
+<div class="page-head"><div><h1>Leaderboard</h1><p>Monthly ranking: attendance 40% · punctuality 20% · checklist quality 25% · reliability (problems reported, tasks, rejections) 15%. The top performer can be named Employee of the Month.</p></div>
+  <div class="actions"><a class="btn" href="?month=<%= prev %>">← <%= prev %></a><span class="badge brand" style="padding:8px 14px"><%= month %></span><% if (month < today().slice(0,7)) { %><a class="btn" href="?month=<%= next %>"><%= next %> →</a><% } %></div></div>
+<div class="grid g3" style="margin-bottom:18px">
+  <% board.slice(0, 3).forEach((s, i) => { %>
+  <div class="card" style="text-align:center;<%= i === 0 ? 'background:linear-gradient(160deg,var(--gold-50),var(--card));border-color:var(--brand-100)' : '' %>">
+    <div style="font-size:30px"><%= ['🥇','🥈','🥉'][i] %></div>
+    <div class="avatar lg" style="margin:8px auto"><%= s.name.split(' ').map(w => w[0]).slice(0,2).join('') %></div>
+    <h3 style="margin:6px 0 2px"><%= s.name %></h3><div class="small muted"><%= roleLabel(s.role) %></div>
+    <div style="font-family:var(--display);font-size:2rem;font-weight:800;color:var(--brand);margin-top:6px"><%= s.score == null ? '—' : Math.round(s.score) %></div><div class="eyebrow">score</div>
+  </div>
+  <% }) %>
+</div>
+<div class="grid g3">
+  <div class="card span2 flush"><div class="card-head"><h3>Full ranking</h3></div><div class="table-wrap"><table class="table responsive"><thead><tr><th>#</th><th>Staff</th><th class="num">Score</th><th class="num">Attendance</th><th class="num">Absent</th><th class="num">Late (min)</th><th class="num">Checklists</th><th class="num">Avg quality</th><th class="num">Reports</th><th class="num">Tasks</th></tr></thead><tbody>
+  <% board.forEach((s, i) => { %><tr><td data-label="#"><b><%= i + 1 %></b></td><td data-label="Staff"><b><%= s.name %></b><div class="small muted"><%= roleLabel(s.role) %></div></td><td class="num" data-label="Score"><b style="color:<%= s.score == null ? '' : s.score >= 85 ? 'var(--ok)' : s.score >= 70 ? 'var(--warn)' : 'var(--bad)' %>"><%= s.score == null ? '—' : Math.round(s.score) %></b></td><td class="num" data-label="Attendance"><%= pct(s.attendance) %></td><td class="num" data-label="Absent"><%= s.absent %></td><td class="num" data-label="Late"><%= s.late_mins %></td><td class="num" data-label="Checklists"><%= s.checklists %></td><td class="num" data-label="Quality"><%= s.avg_score == null ? '—' : s.avg_score + '%' %></td><td class="num" data-label="Reports"><%= s.reports %></td><td class="num" data-label="Tasks"><%= s.tasks_done %><%= s.tasks_overdue ? ' (' + s.tasks_overdue + ' late)' : '' %></td></tr><% }) %>
+  </tbody></table></div></div>
+  <div class="stack">
+    <div class="card"><h3>🏆 Employee of the Month</h3>
+      <% if (award) { %><div class="eotm" style="margin-bottom:12px"><div class="avatar lg"><%= award.name.split(' ').map(w => w[0]).slice(0,2).join('') %></div><div><b style="font-family:var(--display);font-size:1.15rem"><%= award.name %></b><div class="small muted"><%= roleLabel(award.role) %> · <%= month %></div><% if (award.citation) { %><div class="small" style="margin-top:6px">"<%= award.citation %>"</div><% } %></div></div><% } else { %><p class="muted small">Not awarded yet for <%= month %>.</p><% } %>
+      <% if (can('awards.manage') && board.length) { %><form method="post" action="/leaderboard/award" class="form"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="month" value="<%= month %>">
+        <select name="user_id"><% board.forEach((s, i) => { %><option value="<%= s.id %>"><%= i + 1 %>. <%= s.name %> (<%= s.score == null ? '—' : Math.round(s.score) %>)</option><% }) %></select>
+        <input type="hidden" name="score" value="<%= board[0].score ? Math.round(board[0].score) : '' %>">
+        <textarea name="citation" placeholder="Why? (shown to everyone)" style="min-height:70px"></textarea><button class="btn primary"><%- icon('trophy') %><%= award ? 'Change award' : 'Award' %></button></form><% } %></div>
+    <div class="card"><h3>Hall of fame</h3><% for (const h of history) { %><div class="row-item"><span class="ico">🏆</span><div class="grow"><b><%= h.name %></b><div class="small muted"><%= h.month %></div></div></div><% } %><% if (!history.length) { %><p class="small muted">No awards yet.</p><% } %></div>
+  </div>
+</div>

@@ -1,0 +1,15 @@
+# /etc/systemd/system/swaggers-oms.service  →  systemctl enable --now swaggers-oms
+[Unit]
+Description=Swaggers Pizza Operations Management System
+After=network.target
+
+[Service]
+Type=simple
+User=swaggers
+WorkingDirectory=/opt/swaggers-oms
+ExecStart=/usr/bin/node --env-file=/opt/swaggers-oms/.env src/server.js
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

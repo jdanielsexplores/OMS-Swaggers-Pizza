@@ -1,0 +1,39 @@
+<div class="grid g3">
+<div class="card span2">
+  <div class="card-head"><div><div class="eyebrow">SOP-18 · Daily cash-up</div><h2 style="margin:4px 0 0">Record figures from the machine portal</h2></div>
+    <% if (can('machine_portal.open')) { %><a class="btn" href="<%= machinePortalUrl %>" target="_blank" rel="noopener"><%- icon('monitor') %>Open portal ↗</a><% } %></div>
+  <form method="get" class="form-row" style="margin-bottom:16px">
+    <div><label>Machine</label><select name="machine" data-autosubmit><% for (const x of machines) { %><option value="<%= x.id %>" <%= selected(m && m.id, x.id) %>><%= x.code %><%= x.supplier_device_no ? ' (' + x.supplier_device_no + ')' : '' %> — <%= x.site_name %></option><% } %></select></div>
+    <div><label>Business date</label><input type="date" name="date" value="<%= date %>" max="<%= today() %>" data-autosubmit></div>
+  </form>
+  <% if (existing) { %><div class="callout info">A cash-up already exists for this machine and date<%= existing.verified_at ? ' and has been verified' : '' %>. Saving again replaces it<%= existing.verified_at ? ' and clears the verification' : '' %>.</div><% } %>
+  <% if (m) { %>
+  <form method="post" action="/sales/cashup" enctype="multipart/form-data" class="form">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="machine_id" value="<%= m.id %>"><input type="hidden" name="business_date" value="<%= date %>">
+    <div class="form-row">
+      <div><label>Income shown in portal (GH₵) <span class="hint">"Today's income"</span></label><input type="number" step="0.01" min="0" name="machine_reported_amount" required value="<%= existing ? existing.machine_reported_amount : '' %>" style="font-size:20px;font-weight:700"></div>
+      <div><label>Number of orders</label><input type="number" min="0" name="machine_reported_orders" value="<%= existing ? (existing.machine_reported_orders ?? '') : '' %>"></div>
+      <div><label>Machine status in portal</label><select name="machine_status"><option value="">—</option><option value="online" <%= selected(existing && existing.machine_status, 'online') %>>Online</option><option value="offline" <%= selected(existing && existing.machine_status, 'offline') %>>Offline</option></select></div>
+    </div>
+    <details <%= Object.keys(counts).length ? 'open' : '' %>><summary class="btn sm">+ Pizzas sold per flavour (optional — keeps stock and flavour reports accurate)</summary>
+      <div class="grid g2" style="margin-top:12px;gap:10px">
+      <% for (const p of products) { %><div class="product-tile" style="background:var(--line-2);padding:10px;border-radius:14px"><% if (p.image) { %><img src="<%= p.image %>" alt=""><% } %><div style="flex:1"><b class="small"><%= p.name %></b><div class="small muted"><%= money(p.price) %></div></div><input type="number" min="0" name="qty_<%= p.id %>" value="<%= counts[p.id] || '' %>" style="width:80px" placeholder="0"></div><% } %>
+      </div></details>
+    <% if (canSettle) { %><div class="form-row"><div><label>Mobile Money settled (GH₵) <span class="hint">Accounts — from the provider statement</span></label><input type="number" step="0.01" name="provider_settled_amount" value="<%= existing && existing.provider_settled_amount != null ? existing.provider_settled_amount : '' %>"></div></div><% } %>
+    <div><label>Screenshot of the portal (evidence)</label><input type="file" name="evidence" accept="image/*"><% if (existing && existing.evidence) { %> <a class="small" href="/uploads/<%= existing.evidence %>" target="_blank">current screenshot</a><% } %></div>
+    <div><label>Notes</label><input name="notes" value="<%= existing ? (existing.notes || '') : '' %>" placeholder="Anything unusual — refunds, downtime, payment problems…"></div>
+    <div><button class="btn primary lg">Save cash-up</button></div>
+  </form>
+  <% } else { %><div class="empty">No machines at your sites.</div><% } %>
+</div>
+<div class="card"><h3>How to cash up</h3>
+  <ol class="small" style="padding-left:18px">
+    <li>Open the <b>machine portal</b> and select the machine (device number shown in the list).</li>
+    <li>Note <b>Today's income</b> and the order count (Order Management / Financial Report).</li>
+    <li>Check its <b>status</b> (online / offline). Offline? Also <a href="/report?machine=<%= m ? m.id : '' %>">report a fault</a>.</li>
+    <li>Take a <b>screenshot</b> and attach it here.</li>
+    <li>Accounts adds the <b>MoMo settled</b> amount from the provider statement and verifies.</li>
+  </ol>
+  <div class="callout small">Variance above the tolerance must be explained and linked to <a href="/payments">payment exceptions</a> before verification.</div>
+</div>
+</div>

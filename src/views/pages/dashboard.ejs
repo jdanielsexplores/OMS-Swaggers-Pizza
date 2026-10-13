@@ -1,0 +1,52 @@
+<%- CHART_JS %>
+<%
+  const delta = (a, b) => b ? ((a - b) / b * 100) : null;
+  const online = machines.filter(m => m.status === 'online').length;
+  const activeM = machines.filter(m => m.status !== 'decommissioned' && m.site_name).length;
+  const compAvg = compliance.length ? compliance.reduce((a, r) => a + (r.compliance || 0), 0) / compliance.length : null;
+  const dr = delta(todaySales.revenue, yesterday.revenue);
+%>
+<div class="page-head"><div><h1>Operations</h1><p>Live view of every site you manage · <%= fmtDate(sqlNow()) %> <%= nowTime() %></p></div>
+  <div class="actions"><a href="/reports/daily" class="btn">Daily report</a><a href="/tasks/new" class="btn primary"><%- icon('plus') %>Assign task</a></div></div>
+
+<div class="kpis">
+  <div class="kpi"><div class="label">Revenue today</div><div class="value"><%= money(todaySales.revenue, 0) %></div><div class="sub"><%= dr == null ? '—' : (dr >= 0 ? '▲ ' : '▼ ') + Math.abs(dr).toFixed(0) + '% vs yesterday' %></div></div>
+  <div class="kpi"><div class="label">Pizzas sold</div><div class="value"><%= num(todaySales.units) %></div><div class="sub"><%= todaySales.orders %> orders · from machine-portal cash-ups</div></div>
+  <div class="kpi <%= online < activeM ? 'warn' : 'ok' %>"><div class="label">Machines online</div><div class="value"><%= online %>/<%= activeM %></div><div class="sub">Real-time status</div><a class="cover" href="/machines"></a></div>
+  <div class="kpi <%= inc.critical ? 'bad' : inc.open ? 'warn' : 'ok' %>"><div class="label">Open incidents</div><div class="value"><%= inc.open || 0 %></div><div class="sub"><%= inc.critical || 0 %> critical · <%= inc.overdue || 0 %> overdue</div><a class="cover" href="/incidents"></a></div>
+  <div class="kpi <%= compAvg != null && compAvg < 80 ? 'warn' : 'ok' %>"><div class="label">Checklists today</div><div class="value"><%= pct(compAvg) %></div><div class="sub">Daily compliance so far</div><a class="cover" href="/checklists"></a></div>
+  <div class="kpi"><div class="label">Waste today</div><div class="value"><%= num(wasteToday) %></div><div class="sub">units written off</div><a class="cover" href="/stock/movements?kind=waste"></a></div>
+</div>
+
+<div class="grid g3">
+  <div class="card span2">
+    <div class="card-head"><h3>Needs attention</h3><span class="badge <%= attention.length ? 'warn' : 'ok' %>"><%= attention.length %></span></div>
+    <%- include('../partials/attention', { attention }) %>
+  </div>
+  <div class="card">
+    <h3>Checklist compliance today</h3>
+    <% for (const c of compliance) { const v = c.compliance || 0; %>
+      <div style="margin:10px 0"><div style="display:flex;justify-content:space-between" class="small"><span><%= c.name %></span><b><%= pct(c.compliance) %></b></div>
+      <div class="progress <%= v >= 90 ? 'ok' : v >= 60 ? 'warn' : 'bad' %>"><span style="width:<%= v %>%"></span></div></div>
+    <% } %>
+    <% if (approvals.length) { %><hr><h4>Pending approvals</h4><ul class="list"><% for (const a of approvals) { %><li><div class="grow"><a href="/approvals/<%= a.id %>"><%= a.title %></a></div><%- badge(a.kind, titleCase(a.kind)) %></li><% } %></ul><% } %>
+  </div>
+</div>
+
+<div class="card" style="margin-top:16px">
+  <div class="card-head"><h3>Machines & stock</h3><a href="/stock/restock" class="btn sm">Restock requests</a></div>
+  <div class="machines"><% for (const m of machines) { %><%- include('../partials/machine', { m }) %><% } %></div>
+</div>
+
+<div class="grid g2" style="margin-top:16px">
+  <div class="card"><h3>Revenue — last 14 days</h3>
+    <%- chart({ type: 'bar', data: { labels: trend.map(t => fmtDate(t.day, {year:false})), datasets: [{ label: 'Revenue', data: trend.map(t => Math.round(t.revenue)), backgroundColor: '#d9480f', borderRadius: 6 }] } }) %></div>
+  <div class="card"><h3>Demand by hour (last 7 days)</h3>
+    <%- chart({ type: 'line', data: { labels: hourly.map(h => String(h.hour).padStart(2,'0') + ':00'), datasets: [{ label: 'Pizzas', data: hourly.map(h => h.units), borderColor: '#d9480f', backgroundColor: 'rgba(217,72,15,.12)', fill: true, tension: .35 }] } }) %>
+    <p class="small muted" style="margin:8px 0 0">Use this to time refills and put staff on the floor at peak hours.</p></div>
+</div>
+
+<% if (restock.length) { %>
+<div class="card" style="margin-top:16px"><h3>Restock in progress</h3>
+  <ul class="list"><% for (const r of restock) { %><li><div class="grow"><b><%= r.site_name %></b> · <%= JSON.parse(r.items).reduce((a, i) => a + Number(i.qty), 0) %> units<div class="small muted"><%= ago(r.created_at) %> · <%= titleCase(r.priority) %></div></div><%- badge(r.status) %></li><% } %></ul></div>
+<% } %>

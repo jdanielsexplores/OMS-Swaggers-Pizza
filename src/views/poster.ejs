@@ -1,0 +1,5 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Feedback poster <%= m.code %></title>
+<style>body{font-family:Inter,system-ui,sans-serif;margin:0;display:grid;place-items:center;min-height:100vh;background:#fff;color:#1c1917}.p{width:min(560px,100%);text-align:center;padding:36px;border:10px solid #d9480f;border-radius:28px}h1{font-size:38px;margin:.2em 0;color:#d9480f}img{width:280px;height:280px;max-width:100%}p{font-size:19px}.s{font-size:13px;color:#78716c}@media print{button{display:none}}</style></head>
+<body><div class="p"><div style="font-weight:800;letter-spacing:.1em">SWAGGERS PIZZA</div><h1>How was your pizza?</h1><p>Scan to rate us, report a problem or a payment issue.<br>We read every message.</p>
+<img src="https://api.qrserver.com/v1/create-qr-code/?size=560x560&margin=0&data=<%= encodeURIComponent(url) %>" alt="QR code"><p class="s"><%= url %><br>Machine <%= m.code %> · <%= m.site_name %></p>
+<p class="s">We will never ask for your Mobile Money PIN or OTP.</p><button onclick="print()">Print</button></div></body></html>

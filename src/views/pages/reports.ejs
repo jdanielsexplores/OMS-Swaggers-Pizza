@@ -1,0 +1,30 @@
+<%- CHART_JS %>
+<% const dows = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']; const wasteU = waste.reduce((a, w) => a + w.units, 0); %>
+<div class="page-head"><div><h1>Reports</h1><p>Which locations sell most, which flavours perform best, where waste is highest, which machines fail most, and where to intervene.</p></div>
+  <form class="actions" method="get"><input type="date" name="from" value="<%= from %>" style="width:auto"><input type="date" name="to" value="<%= to %>" style="width:auto"><button class="btn">Apply</button><a class="btn" href="/reports/daily">Daily report</a></form></div>
+<div class="kpis">
+  <div class="kpi"><div class="label">Revenue</div><div class="value"><%= money(sales.revenue, 0) %></div></div>
+  <div class="kpi"><div class="label">Pizzas</div><div class="value"><%= num(sales.units) %></div></div>
+  <div class="kpi <%= sales.units && wasteU / sales.units > .05 ? 'bad' : '' %>"><div class="label">Waste rate</div><div class="value"><%= pct(sales.units ? wasteU / sales.units * 100 : null, 1) %></div><div class="sub"><%= num(wasteU) %> units</div></div>
+  <div class="kpi"><div class="label">Temp. breaches</div><div class="value"><%= temps.bad || 0 %></div><div class="sub">of <%= temps.n %> readings</div></div>
+  <div class="kpi"><div class="label">Staff cleared alone</div><div class="value"><%= training.cleared %>/<%= training.n %></div></div>
+</div>
+<div class="grid g2">
+  <div class="card"><h3>Revenue by site</h3><%- chart({ type: 'bar', data: { labels: bySite.map(s => s.name.split('–')[0].trim()), datasets: [{ data: bySite.map(s => Math.round(s.revenue)), backgroundColor: '#d9480f', borderRadius: 6 }] }, options: { indexAxis: 'y' } }) %></div>
+  <div class="card"><h3>Flavour performance</h3><table class="table"><thead><tr><th>Flavour</th><th class="num">Units</th><th class="num">Share</th><th class="num">Revenue</th><th class="num">Margin</th></tr></thead><tbody>
+    <% const tu = byProduct.reduce((a, p) => a + p.units, 0); for (const p of byProduct) { %><tr><td><span class="status-dot" style="background:<%= p.colour %>"></span> <%= p.name %></td><td class="num"><%= num(p.units) %></td><td class="num"><%= pct(tu ? p.units / tu * 100 : null) %></td><td class="num"><%= money(p.revenue, 0) %></td><td class="num"><%= pct(p.revenue ? (p.revenue - p.cogs) / p.revenue * 100 : null) %></td></tr><% } %></tbody></table></div>
+  <div class="card"><h3>Demand by hour</h3><%- chart({ type: 'bar', data: { labels: byHour.map(h => h.hour + ':00'), datasets: [{ data: byHour.map(h => h.units), backgroundColor: '#ea580c', borderRadius: 4 }] } }, 'sm') %></div>
+  <div class="card"><h3>Demand by weekday</h3><%- chart({ type: 'bar', data: { labels: byDow.map(d => dows[d.dow]), datasets: [{ data: byDow.map(d => d.units), backgroundColor: '#9a3412', borderRadius: 4 }] } }, 'sm') %></div>
+</div>
+<div class="grid g3" style="margin-top:16px">
+  <div class="card"><h3>Waste by site</h3><table class="table"><% for (const w of waste) { %><tr><td><%= w.site_name %></td><td class="num"><%= num(w.units) %></td><td class="num"><%= money(w.cost, 0) %></td></tr><% } %></table><h4 style="margin-top:12px">By reason</h4><table class="table"><% for (const w of wasteReasons) { %><tr><td><%= titleCase(w.reason) %></td><td class="num"><%= num(w.units) %></td></tr><% } %></table></div>
+  <div class="card"><h3>Checklist compliance</h3><% for (const c of compliance) { const v = c.compliance || 0; %><div style="margin:10px 0"><div class="small" style="display:flex;justify-content:space-between"><span><%= c.name %></span><b><%= pct(c.compliance) %> · avg <%= c.avg_score ?? '—' %>%</b></div><div class="progress <%= v >= 90 ? 'ok' : v >= 70 ? 'warn' : 'bad' %>"><span style="width:<%= v %>%"></span></div></div><% } %></div>
+  <div class="card"><h3>Machine uptime</h3><table class="table"><% for (const u of uptime) { %><tr><td><a href="/machines/<%= u.id %>"><%= u.code %></a></td><td class="num"><%= pct(u.uptime, 1) %></td><td class="num small"><%= duration(u.down_mins) %></td></tr><% } %></table>
+    <% if (repeatFaults.length) { %><h4 style="margin-top:12px;color:var(--bad)">Repeat faults</h4><% for (const f of repeatFaults) { %><div class="small"><a href="/machines/<%= f.id %>"><b><%= f.code %></b></a> — <%= f.n %> faults: <%= f.titles.slice(0, 160) %></div><% } %><% } %></div>
+</div>
+<div class="grid g2" style="margin-top:16px">
+  <div class="card"><h3>Incidents</h3><table class="table"><thead><tr><th>Type</th><th>Severity</th><th class="num">Count</th><th class="num">Avg time to fix</th></tr></thead><tbody><% for (const i of incidentsByType) { %><tr><td><%= titleCase(i.type) %></td><td><%- badge(i.severity) %></td><td class="num"><%= i.n %></td><td class="num"><%= duration(i.avg_mins) %></td></tr><% } %></tbody></table></div>
+  <div class="card"><h3>Customer feedback</h3><table class="table"><thead><tr><th>Category</th><th class="num">Cases</th><th class="num">Avg rating</th></tr></thead><tbody><% for (const c of cases) { %><tr><td><%= titleCase(c.category) %></td><td class="num"><%= c.n %></td><td class="num"><%= c.rating ?? '—' %></td></tr><% } %></tbody></table></div>
+</div>
+<div class="card" style="margin-top:16px"><h3>Exports (CSV, opens in Excel)</h3><div class="actions">
+<% for (const [t, l] of [['sales','Sales'],['incidents','Incidents'],['checklists','Checklists'],['stock_movements','Stock ledger'],['temperature_logs','Temperatures'],['attendance','Attendance'],['customer_cases','Customer cases'],['transactions','Finance'],['audit_log','Audit log']]) { %><a class="btn sm" href="/reports/export/<%= t %>?from=<%= from %>&to=<%= to %>"><%- icon('download') %><%= l %></a><% } %></div></div>

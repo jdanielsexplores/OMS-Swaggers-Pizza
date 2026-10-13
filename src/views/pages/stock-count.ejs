@@ -1,0 +1,11 @@
+<div class="grid g2">
+<div class="card"><h2>Stock count</h2>
+<form method="get" style="margin-bottom:12px"><label>Location</label><select name="location" data-autosubmit><% for (const l of locs) { %><option value="<%= l.id %>" <%= selected(locId, l.id) %>><%= l.name %></option><% } %></select></form>
+<form method="post" class="form"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="location_id" value="<%= locId %>">
+  <p class="small muted">Count what is physically there. Do not look at the expected figure first — enter what you see.</p>
+  <% for (const p of products) { %><div class="form-row" style="align-items:end"><div><label><%= p.name %></label><input type="number" min="0" name="count_<%= p.id %>" inputmode="numeric"></div><div><label class="small muted">If different, why?</label><input name="why_<%= p.id %>"></div></div><% } %>
+  <div><button class="btn primary">Save count</button></div>
+  <details><summary class="small muted">Show expected figures</summary><p class="small"><%= products.map(p => `${p.name}: ${p.expected}`).join(' · ') %></p></details></form></div>
+<div class="card"><div class="card-head"><h3>Recent counts</h3><a class="small" href="/stock/movements?kind=count">See all adjustments →</a></div><table class="table small"><thead><tr><th>When</th><th>Location</th><th>Product</th><th class="num">Exp.</th><th class="num">Counted</th><th class="num">Var.</th></tr></thead><tbody>
+<% for (const c of recent) { %><tr><td><%= fmtDateTime(c.counted_at) %></td><td><%= c.loc_name %></td><td><%= c.product_name %></td><td class="num"><%= c.expected %></td><td class="num"><%= c.counted %></td><td class="num" style="color:<%= c.variance < 0 ? 'var(--bad)' : c.variance > 0 ? 'var(--warn)' : '' %>"><%= c.variance > 0 ? '+' : '' %><%= c.variance %></td></tr><% } %></tbody></table></div>
+</div>

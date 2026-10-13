@@ -1,0 +1,8 @@
+<div class="card" style="max-width:680px"><h2>Staff acknowledgement — Playbook v<%= version %></h2>
+<% if (done) { %><div class="callout ok">You signed this on <%= fmtDateTime(done.signed_at) %> as "<%= done.signature %>".</div><% } else { %>
+<p style="font-size:16px">I confirm that I have received and read the Swaggers Pizza Operations Playbook and Staff Training Guide. I understand that I must follow approved machine, food-safety, payment, site and security procedures. I will report problems honestly and will not do work I am not trained or authorised to do.</p>
+<form method="post" class="form"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <label class="check"><input type="checkbox" name="agree" value="1" required> I agree</label>
+  <div><label>Type your full name to sign: <b><%= user.name %></b></label><input name="signature" required autocomplete="off"></div>
+  <div class="dl small"><span class="muted">Role / sites:</span> <span><%= roleLabel(user.role) %></span></div>
+  <button class="btn primary">Sign</button></form><% } %></div>

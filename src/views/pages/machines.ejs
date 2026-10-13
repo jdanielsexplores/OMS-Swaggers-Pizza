@@ -1,0 +1,12 @@
+<div class="page-head"><div><h1>Machines</h1><p>Status, stock and reliability for every machine you can access.</p></div>
+  <div class="actions"><% if (can('sites.manage')) { %><a class="btn primary" href="/machines/new"><%- icon('plus') %>Register machine</a><% } %></div></div>
+<div class="kpis">
+  <% for (const st of ['online','degraded','offline','maintenance']) { const n = machines.filter(m => m.status === st).length; %>
+  <div class="kpi <%= st === 'offline' && n ? 'bad' : st === 'online' ? 'ok' : '' %>"><div class="label"><span class="status-dot <%= st %>"></span> <%= titleCase(st) %></div><div class="value"><%= n %></div></div>
+  <% } %>
+</div>
+<div class="machines"><% for (const m of machines) { %><%- include('../partials/machine', { m }) %><% } %></div>
+<div class="card flush" style="margin-top:16px"><div class="card-head"><h3>Reliability — last 7 days</h3></div>
+<div class="table-wrap"><table class="table responsive"><thead><tr><th>Machine</th><th>Site</th><th class="num">Uptime</th><th class="num">Downtime</th><th class="num">Faults (30d)</th><th>Status</th></tr></thead><tbody>
+<% for (const u of uptime) { %><tr><td data-label="Machine"><a href="/machines/<%= u.id %>"><b><%= u.code %></b></a></td><td data-label="Site"><%= u.site_name %></td><td class="num" data-label="Uptime"><%= pct(u.uptime, 1) %></td><td class="num" data-label="Downtime"><%= duration(u.down_mins) %></td><td class="num" data-label="Faults"><%= u.faults_30d %></td><td data-label="Status"><%- badge(u.status) %></td></tr><% } %>
+</tbody></table></div></div>

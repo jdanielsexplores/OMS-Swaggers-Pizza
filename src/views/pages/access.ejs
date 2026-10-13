@@ -1,0 +1,18 @@
+<div class="page-head"><div><h1>Access &amp; roles</h1><p>Choose exactly which areas each role can use. Access is denied unless it is ticked here. To give or remove access for one person only, open their profile → <b>Access</b>.</p></div>
+  <form method="post" action="/access/reset" data-confirm="Reset every role to the recommended defaults?"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn">Reset to defaults</button></form></div>
+<form method="post" action="/access"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+<div class="card flush"><div class="table-wrap"><table class="table perm-table">
+  <thead><tr><th style="min-width:280px">Area / permission</th><% for (const r of roles) { %><th class="center" style="white-space:normal;min-width:86px"><%= roleLabel(r).split(' /')[0] %></th><% } %></tr></thead>
+  <tbody>
+  <% for (const g of CATALOG) { %>
+    <tr><td colspan="<%= roles.length + 1 %>" style="background:var(--line-2)"><b style="font-family:var(--display)"><%= g.module %></b></td></tr>
+    <% for (const [perm, label] of g.perms) { %><tr><td><%= label %><div class="small muted mono"><%= perm %></div></td>
+      <% for (const r of roles) { %><td class="center"><% if (r === 'owner') { %><span title="Owner always has full access">✓</span><% } else { %><input type="checkbox" class="check" style="width:18px;height:18px;accent-color:var(--brand)" name="<%= r %>:<%= perm %>" value="1" <%= checked(matrix[r] && matrix[r][perm]) %>><% } %></td><% } %></tr>
+    <% } %>
+  <% } %>
+  </tbody></table></div></div>
+<div class="actions" style="margin-top:16px;position:sticky;bottom:14px"><button class="btn primary lg">Save role permissions</button><span class="small muted">Changes apply immediately and are recorded in the security log.</span></div>
+</form>
+<div class="card" style="margin-top:18px"><h3>Individual exceptions</h3>
+  <% if (!overrides.length) { %><p class="muted small">None. Add them from a staff member's profile.</p><% } %>
+  <% for (const o of overrides) { %><div class="row-item"><%- badge(o.effect === 'grant' ? 'ok' : 'bad', o.effect === 'grant' ? 'Granted' : 'Removed') %><div class="grow"><a href="/users/<%= o.user_id %>#access"><b><%= o.name %></b></a> <span class="small muted">(<%= roleLabel(o.role) %>)</span> · <span class="mono small"><%= o.perm %></span></div></div><% } %></div>

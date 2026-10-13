@@ -1,0 +1,22 @@
+<%- CHART_JS %>
+<div class="page-head"><div><h1><%= site.name %></h1><p><%= site.code %> · <%= titleCase(site.type) %> · <%= site.address || '' %> · Open <%= site.opening_time %>–<%= site.closing_time %></p></div>
+  <div class="actions"><%- badge(site.status) %><% if (can('sites.manage')) { %><a class="btn" href="/sites/<%= site.id %>/edit">Edit</a><a class="btn" href="/machines/new?site=<%= site.id %>">Add machine</a><% } %><a class="btn" href="/checklists?site=<%= site.id %>">Checklists</a></div></div>
+<div class="kpis">
+  <div class="kpi"><div class="label">30-day revenue</div><div class="value"><%= money(sales.revenue, 0) %></div></div>
+  <div class="kpi"><div class="label">Pizzas (30d)</div><div class="value"><%= num(sales.units) %></div></div>
+  <div class="kpi"><div class="label">Per day</div><div class="value"><%= money(sales.revenue / 30, 0) %></div></div>
+  <div class="kpi"><div class="label">Staff assigned</div><div class="value"><%= staff.length %></div></div>
+</div>
+<div class="grid g3">
+  <div class="card span2"><h3>Daily revenue</h3><%- chart({ type: 'bar', data: { labels: trend.map(t => fmtDate(t.day, {year:false})), datasets: [{ data: trend.map(t => Math.round(t.revenue)), backgroundColor: '#d9480f', borderRadius: 5 }] } }) %></div>
+  <div class="card"><h3>Site rules (<%= titleCase(site.type) %>)</h3><div class="callout"><%= rules %></div>
+    <dl class="dl"><dt>Site contact</dt><dd><%= site.contact_name || '—' %> <%= site.contact_phone || '' %></dd><dt>Emergency</dt><dd><%= site.emergency_contact || '—' %></dd></dl>
+    <% if (site.notes) { %><p class="small" style="margin-top:10px;white-space:pre-wrap"><%= site.notes %></p><% } %></div>
+</div>
+<div class="card" style="margin-top:16px"><h3>Machines</h3><div class="machines"><% for (const m of machines) { %><%- include('../partials/machine', { m }) %><% } %></div><% if (!machines.length) { %><div class="empty">No machines yet.</div><% } %></div>
+<div class="grid g2" style="margin-top:16px">
+  <div class="card"><h3>Team</h3><ul class="list"><% for (const s of staff) { %><li><div class="grow"><a href="/users/<%= s.id %>"><b><%= s.name %></b></a><div class="small muted"><%= roleLabel(s.role) %> · <%= s.phone || '' %></div></div><%- s.cleared_to_work_alone ? badge('ok','Cleared') : badge('pending','In training') %></li><% } %></ul></div>
+  <div class="card"><h3>Recent incidents</h3><ul class="list"><% for (const i of incidents) { %><li><%- badge(i.severity) %><div class="grow"><a href="/incidents/<%= i.id %>"><%= i.title %></a><div class="small muted"><%= fmtDateTime(i.created_at) %></div></div><%- badge(i.status) %></li><% } %></ul><% if (!incidents.length) { %><div class="empty">None.</div><% } %></div>
+</div>
+<div class="card flush" style="margin-top:16px"><div class="card-head"><h3>Launch readiness</h3><span class="small muted">Do not fill gaps by guessing — confirm with evidence.</span></div>
+  <%- include('../partials/readiness-table', { items: readiness, showSite: false }) %></div>

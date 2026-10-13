@@ -1,0 +1,43 @@
+<%- CHART_JS %>
+<div class="page-head"><div><h1>Finance</h1><p><%= fmtDate(from) %> – <%= fmtDate(to) %> · profit & loss, site profitability, budgets</p></div>
+  <form class="actions" method="get"><input type="month" name="month" value="<%= month %>" data-autosubmit style="width:auto"><a class="btn" href="/finance/budget?month=<%= month %>">Budget</a><a class="btn" href="/reports/export/transactions?from=<%= from %>&to=<%= to %>"><%- icon('download') %>CSV</a></form></div>
+<div class="kpis">
+  <div class="kpi"><div class="label">Sales revenue</div><div class="value"><%= money(fin.salesRev, 0) %></div></div>
+  <div class="kpi"><div class="label">Other income</div><div class="value"><%= money(fin.otherIncome, 0) %></div></div>
+  <div class="kpi"><div class="label">Cost of goods</div><div class="value"><%= money(fin.cogs, 0) %></div><div class="sub"><%= pct(fin.salesRev ? fin.cogs / fin.salesRev * 100 : null) %> of sales</div></div>
+  <div class="kpi"><div class="label">Operating expenses</div><div class="value"><%= money(fin.expenses, 0) %></div><div class="sub">excl. stock purchases <%= money(fin.stockPurchases, 0) %> (counted via COGS)</div></div>
+  <div class="kpi"><div class="label">Refunds</div><div class="value"><%= money(fin.refunds, 0) %></div></div>
+  <div class="kpi <%= fin.net >= 0 ? 'ok' : 'bad' %>"><div class="label">Net profit</div><div class="value"><%= money(fin.net, 0) %></div><div class="sub"><%= pct(fin.margin) %> margin</div></div>
+</div>
+<div class="grid g3">
+  <div class="card span2"><h3>6-month trend</h3><%- chart({ type: 'bar', data: { labels: trend.map(t => t.m), datasets: [{ label: 'Income', data: trend.map(t => Math.round(t.rev)), backgroundColor: '#15803d', borderRadius: 4 }, { label: 'Costs', data: trend.map(t => Math.round(t.cost)), backgroundColor: '#a8a29e', borderRadius: 4 }, { label: 'Net', type: 'line', data: trend.map(t => Math.round(t.net)), borderColor: '#d9480f', backgroundColor: '#d9480f', tension: .3 }] }, options: { plugins: { legend: { display: true, position: 'bottom' } } } }) %></div>
+  <% if (can('finance.record')) { %><div class="card"><h3>Record income / expense</h3>
+    <form method="post" action="/finance/transactions" enctype="multipart/form-data" class="form"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="form-row"><div><label>Type</label><select name="kind" id="kind"><option value="expense">Expense</option><option value="income">Income</option></select></div><div><label>Date</label><input type="date" name="txn_date" value="<%= today() %>"></div></div>
+      <div><label>Category</label><select name="category_id"><% let last; for (const c of categories) { if (c.kind + c.parent !== last) { if (last) { %></optgroup><% } last = c.kind + c.parent; %><optgroup label="<%= titleCase(c.kind) %><%= c.parent ? ' — ' + c.parent : '' %>"><% } %><option value="<%= c.id %>"><%= c.name %></option><% } %></optgroup></select></div>
+      <div class="form-row"><div><label>Amount (GHS)</label><input type="number" step="0.01" name="amount" required></div><div><label>Site</label><select name="site_id"><option value="">Business-wide</option><% for (const s of siteList) { %><option value="<%= s.id %>"><%= s.name %></option><% } %></select></div></div>
+      <div><label>Supplier / vendor</label><select name="vendor_id"><option value="">—</option><% for (const v of vendors) { %><option value="<%= v.id %>"><%= v.name %></option><% } %></select></div>
+      <div><label>Description</label><input name="description" required></div><div><label>Reference / invoice</label><input name="reference"></div>
+      <div><label>Receipt (photo / PDF)</label><input type="file" name="receipt" accept="image/*,application/pdf"></div>
+      <p class="small muted">Expenses above GH₵<%= limits.mgr %> need Ops Manager approval; above GH₵<%= limits.owner %> need the Owner.</p>
+      <button class="btn primary">Save</button></form></div><% } %>
+</div>
+<div class="card flush" style="margin-top:16px"><div class="card-head"><h3>Site profitability (contribution before shared overheads)</h3></div>
+<div class="table-wrap"><table class="table responsive"><thead><tr><th>Site</th><th class="num">Revenue</th><th class="num">COGS</th><th class="num">Gross margin</th><th class="num">Site costs</th><th class="num">Waste cost</th><th class="num">Contribution</th></tr></thead><tbody>
+<% for (const s of sites) { %><tr><td data-label="Site"><b><%= s.name %></b></td><td class="num" data-label="Revenue"><%= money(s.revenue, 0) %></td><td class="num" data-label="COGS"><%= money(s.cogs, 0) %></td><td class="num" data-label="Gross"><%= pct(s.revenue ? (s.revenue - s.cogs) / s.revenue * 100 : null) %></td><td class="num" data-label="Site costs"><%= money(s.exp, 0) %></td><td class="num" data-label="Waste"><%= money(s.waste, 0) %></td><td class="num" data-label="Contribution" style="font-weight:700;color:<%= s.contribution >= 0 ? 'var(--ok)' : 'var(--bad)' %>"><%= money(s.contribution, 0) %></td></tr><% } %>
+<tr><td><i>Shared overheads (payroll, admin, etc.)</i></td><td colspan="5"></td><td class="num">−<%= money(overheads, 0) %></td></tr></tbody></table></div></div>
+<div class="grid g2" style="margin-top:16px">
+  <div class="card flush"><div class="card-head"><h3>By category vs budget</h3></div><div class="table-wrap"><table class="table"><thead><tr><th>Category</th><th class="num">Actual</th><th class="num">Budget</th><th class="num">Var.</th></tr></thead><tbody>
+  <% for (const c of byCategory) { const v = c.budget ? c.actual - c.budget : null; %><tr><td><%= c.name %><div class="small muted"><%= titleCase(c.kind) %> <%= c.parent ? '· ' + c.parent : '' %></div></td><td class="num"><%= money(c.actual, 0) %></td><td class="num"><%= c.budget ? money(c.budget, 0) : '—' %></td><td class="num" style="color:<%= v == null ? '' : (c.kind === 'expense' ? v > 0 : v < 0) ? 'var(--bad)' : 'var(--ok)' %>"><%= v == null ? '' : (v > 0 ? '+' : '') + money(v, 0) %></td></tr><% } %></tbody></table></div></div>
+  <div class="card flush" id="txns"><div class="card-head"><h3>Transactions</h3><span class="small muted"><%= fmtDate(from) %> – <%= fmtDate(to) %></span></div>
+  <form class="filterbar" method="get" style="margin:12px 16px;box-shadow:none"><input type="hidden" name="month" value="<%= month %>">
+    <div><label>Search</label><input type="search" name="q" value="<%= tf.q %>" placeholder="Description, reference"></div>
+    <div><label>Type</label><select name="kind"><option value="">Both</option><option value="income" <%= selected(tf.kind, 'income') %>>Income</option><option value="expense" <%= selected(tf.kind, 'expense') %>>Expense</option></select></div>
+    <div><label>Category</label><select name="category"><option value="">All</option><% for (const c of categories) { %><option value="<%= c.id %>" <%= selected(tf.category, c.id) %>><%= c.name %></option><% } %></select></div>
+    <div><label>Site</label><select name="tsite"><option value="">All</option><option value="none" <%= selected(tf.tsite, 'none') %>>Business-wide</option><% for (const s of siteList) { %><option value="<%= s.id %>" <%= selected(tf.tsite, s.id) %>><%= s.name %></option><% } %></select></div>
+    <div><label>Status</label><select name="tstatus"><option value="">Any</option><% for (const st of ['approved','pending','rejected']) { %><option value="<%= st %>" <%= selected(tf.tstatus, st) %>><%= titleCase(st) %></option><% } %></select></div>
+    <div class="fb-actions"><button class="btn primary sm">Filter</button><a class="btn sm" href="/finance?month=<%= month %>#txns">Reset</a></div></form>
+  <div class="table-wrap"><table class="table"><tbody>
+  <% for (const t of recent) { %><tr><td class="nowrap small"><%= fmtDate(t.txn_date, {year:false}) %></td><td><%= t.description %><div class="small muted"><%= t.category %><%= t.site_name ? ' · ' + t.site_name : '' %><% if (t.receipt) { %> · <a href="/uploads/<%= t.receipt %>" target="_blank">receipt</a><% } %></div></td><td class="num" style="color:<%= t.kind === 'income' ? 'var(--ok)' : '' %>"><%= t.kind === 'income' ? '+' : '−' %><%= money(t.amount, 0) %></td><td><%- t.status !== 'approved' ? badge(t.status) : '' %></td></tr><% } %></tbody></table></div>
+  <% if (!recent.length) { %><div class="empty">No transactions match.</div><% } %><%- include('../partials/pager', { p: tp, hash: 'txns' }) %></div>
+</div>

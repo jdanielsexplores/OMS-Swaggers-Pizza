@@ -1,0 +1,12 @@
+<div class="table-wrap"><table class="table responsive"><thead><tr><% if (showSite) { %><th>Scope</th><% } %><th>Item to confirm</th><th>Owner / source</th><th>Status</th><th>Evidence</th><% if (can('readiness.manage')) { %><th></th><% } %></tr></thead><tbody>
+<% for (const it of items) { %>
+  <tr><% if (showSite) { %><td data-label="Scope"><%= it.site_name || 'Business-wide' %></td><% } %>
+  <td data-label="Item"><b><%= it.item %></b></td><td data-label="Owner"><%= it.owner_source || '' %></td>
+  <td data-label="Status"><%- badge(it.status) %><% if (it.confirmed_name) { %><div class="small muted"><%= it.confirmed_name %>, <%= fmtDate(it.confirmed_at) %></div><% } %></td>
+  <% if (can('readiness.manage')) { %>
+  <td data-label="Evidence" colspan="2"><form method="post" action="/readiness/<%= it.id %>" style="display:flex;gap:6px;flex-wrap:wrap"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <input name="evidence" value="<%= it.evidence || '' %>" placeholder="Document / reference" style="min-width:160px;flex:1;padding:6px 9px">
+    <select name="status" style="width:auto;padding:6px 9px"><% for (const s of ['open','in_progress','confirmed','not_applicable']) { %><option value="<%= s %>" <%= selected(it.status, s) %>><%= titleCase(s) %></option><% } %></select>
+    <button class="btn sm">Save</button></form></td>
+  <% } else { %><td data-label="Evidence"><%= it.evidence || '' %></td><% } %></tr>
+<% } %></tbody></table></div>

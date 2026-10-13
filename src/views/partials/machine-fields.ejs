@@ -1,0 +1,9 @@
+<div class="form-row">
+  <% if (isNew) { %><div><label>Machine code <span class="hint">(e.g. SWG-KIA-02)</span></label><input name="code" required></div><% } %>
+  <div><label>Supplier device no. <span class="hint">(as shown in the machine portal, e.g. CYJ7000142)</span></label><input name="supplier_device_no" value="<%= m.supplier_device_no || '' %>"></div>
+  <div><label>Site</label><select name="site_id" required><% for (const s of sites) { %><option value="<%= s.id %>" <%= selected(m.site_id, s.id) %>><%= s.name %></option><% } %></select></div>
+  <div><label>Capacity (pizzas)</label><input type="number" name="capacity" value="<%= m.capacity || 60 %>"></div>
+</div>
+<div class="form-row"><div><label>Model</label><input name="model" value="<%= m.model || '' %>"></div><div><label>Serial number</label><input name="serial_no" value="<%= m.serial_no || '' %>"></div><div><label>Payment QR reference</label><input name="payment_qr_ref" value="<%= m.payment_qr_ref || '' %>"></div></div>
+<div class="form-row"><div><label>Installed on</label><input type="date" name="installed_on" value="<%= m.installed_on || '' %>"></div><div><label>Warranty until</label><input type="date" name="warranty_until" value="<%= m.warranty_until || '' %>"></div><div><label>Last serviced</label><input type="date" name="last_service_on" value="<%= m.last_service_on || '' %>"></div><div><label>Service interval (days)</label><input type="number" name="service_interval_days" value="<%= m.service_interval_days || 30 %>"></div></div>
+<div><label>Notes</label><textarea name="notes"><%= m.notes || '' %></textarea></div>

@@ -1,0 +1,4 @@
+<div class="card" style="max-width:820px"><h2>Register a machine</h2>
+<form method="post" action="/machines" class="form"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <%- include('../partials/machine-fields', { m, sites, isNew: true }) %>
+  <div><button class="btn primary">Register machine</button></div></form></div>

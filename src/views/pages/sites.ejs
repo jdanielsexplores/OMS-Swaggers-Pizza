@@ -1,0 +1,17 @@
+<div class="page-head"><div><h1>Sites & Expansion</h1><p>Every location, its machines, readiness and 30-day performance. Add new sites without rebuilding anything (SOP-22).</p></div>
+  <div class="actions"><% if (can('sites.manage')) { %><a class="btn" href="/machines/new">Register machine</a><a class="btn primary" href="/sites/new"><%- icon('plus') %>New site</a><% } %></div></div>
+<div class="grid g3">
+<% for (const s of sites) { const rp = s.ready_total ? s.ready_done / s.ready_total * 100 : 0; %>
+  <a class="card sop-card" href="/sites/<%= s.id %>">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span class="sop-code"><%= s.code %> · <%= titleCase(s.type) %></span><%- badge(s.status) %></div>
+    <h3 style="margin:6px 0 2px"><%= s.name %></h3>
+    <div class="small muted"><%= s.address || '' %><%= s.city ? ', ' + s.city : '' %> · <%= s.opening_time %>–<%= s.closing_time %></div>
+    <div class="grid g3" style="margin-top:12px;gap:8px">
+      <div><div class="small muted">30d revenue</div><b><%= money(s.perf ? s.perf.revenue : 0, 0) %></b></div>
+      <div><div class="small muted">Machines</div><b><%= s.machines %></b></div>
+      <div><div class="small muted">Staff</div><b><%= s.staff %></b></div>
+    </div>
+    <div style="margin-top:12px" class="small"><div style="display:flex;justify-content:space-between"><span class="muted">Launch readiness</span><b><%= Math.round(rp) %>%</b></div><div class="progress <%= rp === 100 ? 'ok' : 'warn' %>"><span style="width:<%= rp %>%"></span></div></div>
+  </a>
+<% } %>
+</div>

@@ -1,0 +1,11 @@
+<% const d = sop.draft ? JSON.parse(sop.draft) : {}; const v = (k) => d[k] ?? sop[k] ?? ''; %>
+<div class="card" style="max-width:980px"><h2><%= isNew ? 'New SOP' : 'Edit ' + sop.code %></h2>
+  <p class="muted small"><%= user.role === 'owner' ? 'As Owner, saving publishes immediately and asks staff to re-read.' : 'Your changes are saved as a draft and sent to the Owner for approval. Staff keep seeing the approved version until then.' %></p>
+  <form method="post" action="/handbook/save" class="form"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="form-row"><div><label>Code</label><input name="code" value="<%= sop.code %>" <%= isNew ? '' : 'readonly' %>></div><div style="grid-column:span 2"><label>Title</label><input name="title" value="<%= v('title') %>" required></div>
+      <div><label>Category</label><select name="category"><% for (const [k, l] of Object.entries(CATEGORY_LABELS)) { %><option value="<%= k %>" <%= selected(v('category'), k) %>><%= l %></option><% } %></select></div></div>
+    <div><label>Purpose</label><input name="purpose" value="<%= v('purpose') %>"></div>
+    <div><label>Roles <span class="hint">(all, or comma list: sales_rep,supervisor,stock_staff,technician,accounts,ops_manager)</span></label><input name="roles" value="<%= v('roles') %>"></div>
+    <div><label>Procedure <span class="hint">— use "## Heading", "1. step", "- bullet", "> NOTE: callout", "| table | row |"</span></label><textarea name="body" style="min-height:420px;font-family:ui-monospace,monospace;font-size:13.5px"><%= v('body') %></textarea></div>
+    <div><label>What changed and why?</label><input name="change_note" required></div>
+    <div><button class="btn primary">Save</button></div></form></div>

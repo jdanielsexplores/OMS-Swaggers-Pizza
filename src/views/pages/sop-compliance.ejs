@@ -1,0 +1,8 @@
+<div class="page-head"><div><h1>SOP read tracking</h1><p>Who has read the current version of each procedure. ✓ = read · · = not yet.</p></div></div>
+<form class="filterbar" method="get"><div><label>Staff</label><input type="search" name="q" value="<%= f.q %>"></div>
+  <div><label>Role</label><select name="role"><option value="">Any</option><% for (const r of ['ops_manager','supervisor','sales_rep','stock_staff','technician','accounts','owner']) { %><option value="<%= r %>" <%= selected(f.role, r) %>><%= roleLabel(r) %></option><% } %></select></div>
+  <div class="fb-actions"><button class="btn primary sm">Filter</button><a class="btn sm" href="/handbook/compliance">Reset</a></div></form>
+<div class="card flush"><div class="table-wrap"><table class="table"><thead><tr><th>Staff</th><th>Playbook signed</th><% for (const s of sops) { %><th title="<%= s.title %>" style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:10.5px"><%= s.code %></th><% } %><th class="num">%</th></tr></thead><tbody>
+<% for (const u of users) { const n = sops.filter(s => reads.has(s.id + ':' + u.id)).length; %><tr><td class="nowrap"><b><%= u.name %></b><div class="small muted"><%= roleLabel(u.role) %></div></td><td><%- acks.has(u.id) ? badge('ok','Signed') : badge('pending','No') %></td>
+<% for (const s of sops) { const ok = reads.has(s.id + ':' + u.id); %><td class="center" style="color:<%= ok ? 'var(--ok)' : 'var(--line)' %>;font-weight:700"><%= ok ? '✓' : '·' %></td><% } %><td class="num"><%= Math.round(n / sops.length * 100) %>%</td></tr><% } %>
+</tbody></table></div><%- include('../partials/pager', { p }) %></div>

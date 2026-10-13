@@ -1,0 +1,11 @@
+<div class="page-head"><div><h1>Review queue</h1><p>Sign off checklists the same day. Spot-verify items; never sign off unchecked work. Ones with failures are listed first.</p></div></div>
+<form class="filterbar" method="get">
+  <div><label>Site</label><select name="site"><option value="">All</option><% for (const s of sites) { %><option value="<%= s.id %>" <%= selected(f.site, s.id) %>><%= s.name %></option><% } %></select></div>
+  <div><label>Result</label><select name="failed"><option value="">Any</option><option value="1" <%= selected(f.failed, '1') %>>With failed items</option></select></div>
+  <div><label>From</label><input type="date" name="from" value="<%= f.from %>"></div><div><label>To</label><input type="date" name="to" value="<%= f.to %>"></div>
+  <div class="fb-actions"><button class="btn primary sm">Filter</button><a class="btn sm" href="/checklists/review">Reset</a></div></form>
+<div class="card flush"><% if (!runs.length) { %><div class="empty">Queue is empty ✅</div><% } %>
+<div class="table-wrap"><table class="table responsive"><thead><tr><th>Checklist</th><th>Site</th><th>By</th><th>Submitted</th><th class="num">Score</th><th></th></tr></thead><tbody>
+<% for (const r of runs) { %><tr><td data-label="Checklist"><a href="/checklists/run/<%= r.id %>"><b><%= r.tpl_name %></b></a></td><td data-label="Site"><%= r.site_name %></td><td data-label="By"><%= r.user_name %></td><td data-label="Submitted"><%= fmtDateTime(r.submitted_at) %></td><td class="num" data-label="Score"><span class="badge <%= r.failed_count ? 'warn' : 'ok' %>"><%= r.score %>%<%= r.failed_count ? ' · ' + r.failed_count + ' failed' : '' %></span></td>
+<td class="right"><% if (r.user_id !== user.id) { %><form method="post" action="/checklists/run/<%= r.id %>/review" class="inline"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="next" value="queue"><button class="btn sm ok" name="decision" value="approve" <%= r.failed_count ? 'disabled title="Open it to confirm corrective action"' : '' %>>Sign off</button></form><% } %> <a class="btn sm" href="/checklists/run/<%= r.id %>">Open</a></td></tr><% } %>
+</tbody></table></div><%- include('../partials/pager', { p }) %></div>

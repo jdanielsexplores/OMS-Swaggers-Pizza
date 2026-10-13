@@ -1,0 +1,16 @@
+<div class="page-head"><div><span class="sop-code"><%= sop.code %> · <%= CATEGORY_LABELS[sop.category] || '' %></span><h1><%= sop.title %></h1><p>Version <%= sop.version %> · <%= sop.status === 'approved' ? 'approved ' + fmtDate(sop.approved_at) + (sop.approver ? ' by ' + sop.approver : '') : 'DRAFT — not yet approved' %> · review due <%= fmtDate(sop.review_due) %></p></div>
+  <div class="actions"><% if (can('sops.manage')) { %><a class="btn" href="/handbook/<%= sop.code %>/edit">Edit</a><% } %><button class="btn" onclick="print()">Print</button></div></div>
+<% if (sop.draft && can('sops.manage')) { %><div class="callout info">A change to this SOP is waiting for Owner approval. Staff see the current approved version below.</div><% } %>
+<div class="grid g3">
+  <div class="card span2 prose">
+    <div class="callout"><b>Purpose:</b> <%= sop.purpose %></div>
+    <%- md(sop.body) %>
+    <hr><div class="actions" style="justify-content:space-between"><% if (prev) { %><a class="btn sm" href="/handbook/<%= prev.code %>">← <%= prev.code %></a><% } else { %><span></span><% } %><% if (next) { %><a class="btn sm" href="/handbook/<%= next.code %>"><%= next.code %> →</a><% } %></div>
+  </div>
+  <div class="stack">
+    <div class="card"><h3>Read & understood</h3><% if (read) { %><p><%- badge('ok', 'You read v' + sop.version + ' on ' + fmtDate(read.read_at)) %></p><% } else if (sop.status === 'approved') { %><form method="post" action="/handbook/<%= sop.code %>/read"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn primary block">I have read and understood this</button></form><% } %>
+      <% if (readers != null) { %><p class="small muted" style="margin-top:10px"><%= readers %>/<%= staffCount %> staff have read this version.</p><% } %></div>
+    <div class="card"><h3>Who this applies to</h3><p class="small"><%= sop.roles === 'all' ? 'Everyone' : (sop.roles || '').split(',').map(r => (ROLES[r.trim()] || {}).label || r).join(', ') %></p>
+      <p class="small muted">Not sure about a step? <a href="/assistant?q=<%= encodeURIComponent('Explain ' + sop.code + ' ' + sop.title) %>">Ask Swaggers</a> or your Supervisor. Never guess on safety, food or payments.</p></div>
+  </div>
+</div>

@@ -1,0 +1,11 @@
+<div class="page-head"><div><h1>Notice board</h1><p>Announcements appear on Staff Home. Use "requires acknowledgement" for anything staff must confirm they've read.</p></div></div>
+<form class="filterbar" method="get"><div><label>Search</label><input type="search" name="q" value="<%= f.q %>"></div><div><label>From</label><input type="date" name="from" value="<%= f.from %>"></div><div><label>To</label><input type="date" name="to" value="<%= f.to %>"></div><div class="fb-actions"><button class="btn primary sm">Filter</button><a class="btn sm" href="/announcements">Reset</a></div></form>
+<div class="grid g3">
+  <div class="card span2"><ul class="list"><% for (const a of rows) { %><li><%- a.pinned ? badge('warn','Pinned') : '' %><div class="grow"><b><%= a.title %></b><div class="small" style="white-space:pre-wrap"><%= a.body %></div><div class="small muted"><%= a.author %> · <%= fmtDate(a.created_at) %> · <%= a.audience %><%= a.requires_ack ? ` · ${a.acks}/${staffCount} acknowledged` : '' %></div></div>
+    <% if (can('announcements.post')) { %><form method="post" action="/announcements/<%= a.id %>/delete" data-confirm="Delete this announcement?"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn sm ghost">✕</button></form><% } %></li><% } %></ul><%- include('../partials/pager', { p }) %></div>
+  <% if (can('announcements.post')) { %><div class="card"><h3>Post</h3><form method="post" action="/announcements" class="form"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <input name="title" placeholder="Title" required><textarea name="body" placeholder="Message" required></textarea>
+    <select name="audience"><option value="all">Everyone</option><% for (const s of sites) { %><option value="site:<%= s.id %>"><%= s.name %> team</option><% } %><% for (const r of ['sales_rep','supervisor','stock_staff','technician']) { %><option value="role:<%= r %>">All <%= roleLabel(r) %></option><% } %></select>
+    <div class="form-row"><div><label>Expires</label><input type="date" name="expires_on"></div></div>
+    <label class="check"><input type="checkbox" name="pinned" value="1"> Pin</label><label class="check"><input type="checkbox" name="requires_ack" value="1"> Requires acknowledgement</label><button class="btn primary">Post</button></form></div><% } %>
+</div>

@@ -1,0 +1,12 @@
+<a class="machine" href="/machines/<%= m.id %>">
+  <div class="top"><span class="thumb"><img src="/img/machine.png" alt="" loading="lazy"></span>
+    <div style="min-width:0;flex:1"><div style="display:flex;align-items:center;gap:7px"><span class="status-dot <%= m.status %>"></span><%= m.code %></div><div class="site"><%= m.site_name %><%= m.supplier_device_no ? ' · ' + m.supplier_device_no : '' %></div></div>
+    <%- badge(m.status) %></div>
+  <% if (m.status_reason && m.status !== 'online') { %><div class="small" style="color:var(--bad);margin-top:8px"><%= m.status_reason %></div><% } %>
+  <div class="stockbars">
+    <% for (const s of (m.stock || [])) { const pctv = Math.max(0, Math.min(100, (s.qty / (m.capacity / 4 || 15)) * 100)); %>
+      <div class="stockbar"><div><div class="small"><%= s.product_name %></div><div class="bar"><span style="width:<%= pctv %>%;background:<%= s.qty <= s.reorder_level ? 'var(--bad)' : (s.colour || 'var(--brand)') %>"></span></div></div><span class="small mono right" style="<%= s.qty <= s.reorder_level ? 'color:var(--bad);font-weight:700' : '' %>"><%= num(s.qty) %></span></div>
+    <% } %>
+  </div>
+  <% if (m.openIncidents) { %><div class="small" style="margin-top:10px"><%- badge('open', m.openIncidents + ' open incident' + (m.openIncidents > 1 ? 's' : '')) %></div><% } %>
+</a>

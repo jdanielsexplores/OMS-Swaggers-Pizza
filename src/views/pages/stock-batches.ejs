@@ -1,0 +1,11 @@
+<div class="page-head"><div><h1>Batches & traceability</h1><p>Hold or recall a batch and every site holding it is alerted (SOP-25).</p></div><% if (can('stock.manage')) { %><a class="btn" href="/stock/receive">Receive delivery</a><% } %></div>
+<form class="filterbar" method="get">
+  <div><label>Batch no.</label><input type="search" name="q" value="<%= f.q %>"></div>
+  <div><label>Product</label><select name="product"><option value="">All</option><% for (const x of products) { %><option value="<%= x.id %>" <%= selected(f.product, x.id) %>><%= x.name %></option><% } %></select></div>
+  <div><label>Status</label><select name="status"><option value="">Any</option><% for (const st of ['released','on_hold','recalled','expired']) { %><option value="<%= st %>" <%= selected(f.status, st) %>><%= titleCase(st) %></option><% } %></select></div>
+  <div><label>Stock</label><select name="stock"><option value="">Any</option><option value="in" <%= selected(f.stock, 'in') %>>In stock</option><option value="empty" <%= selected(f.stock, 'empty') %>>Used up</option></select></div>
+  <div><label>Expiry</label><select name="expiring"><option value="">Any</option><option value="7" <%= selected(f.expiring, '7') %>>Within 7 days</option></select></div>
+  <div class="fb-actions"><button class="btn primary sm">Filter</button><a class="btn sm" href="/stock/batches">Reset</a></div></form>
+<div class="card flush"><div class="table-wrap"><table class="table responsive"><thead><tr><th>Batch</th><th>Product</th><th>Supplier</th><th>Received</th><th>Use-by</th><th class="num">On hand</th><th>Status</th></tr></thead><tbody>
+<% for (const b of rows) { const exp = b.expires_at && b.expires_at < sqlNow(); %><tr><td data-label="Batch"><a href="/stock/batches/<%= b.id %>"><b><%= b.batch_no %></b></a></td><td data-label="Product"><%= b.product_name %></td><td data-label="Supplier"><%= b.supplier || '—' %></td><td data-label="Received"><%= fmtDate(b.received_at) %></td><td data-label="Use-by" style="<%= exp ? 'color:var(--bad)' : '' %>"><%= fmtDate(b.expires_at) %></td><td class="num" data-label="On hand"><%= num(b.on_hand) %></td><td data-label="Status"><%- badge(b.status) %></td></tr><% } %>
+</tbody></table></div><% if (!rows.length) { %><div class="empty">No batches match.</div><% } %><%- include('../partials/pager', { p }) %></div>

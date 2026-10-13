@@ -1,0 +1,9 @@
+<div class="page-head"><div><h1>Training matrix</h1><p>Q = quiz passed · P = practical passed · ✗ = retrain needed.</p></div></div>
+<form class="filterbar" method="get"><div><label>Staff</label><input type="search" name="q" value="<%= f.q %>"></div>
+  <div><label>Role</label><select name="role"><option value="">Any</option><% for (const r of ['ops_manager','supervisor','sales_rep','stock_staff','technician','accounts']) { %><option value="<%= r %>" <%= selected(f.role, r) %>><%= roleLabel(r) %></option><% } %></select></div>
+  <div><label>Cleared alone</label><select name="cleared"><option value="">Any</option><option value="yes" <%= selected(f.cleared, 'yes') %>>Yes</option><option value="no" <%= selected(f.cleared, 'no') %>>Not yet</option></select></div>
+  <div class="fb-actions"><button class="btn primary sm">Filter</button><a class="btn sm" href="/training/matrix">Reset</a></div></form>
+<div class="card flush"><div class="table-wrap"><table class="table"><thead><tr><th>Staff</th><th>Cleared</th><% for (const m of modules) { %><th class="center" title="<%= m.title %>"><%= m.code %></th><% } %></tr></thead><tbody>
+<% for (const u of users) { %><tr><td class="nowrap"><a href="/users/<%= u.id %>"><b><%= u.name %></b></a><div class="small muted"><%= roleLabel(u.role) %></div></td><td><%- u.cleared_to_work_alone ? badge('ok','Yes') : badge('pending','No') %></td>
+<% for (const m of modules) { const rq = !m.roles || (',' + m.roles + ',').includes(',' + u.role + ','); const x = recs[u.id + ':' + m.id]; %><td class="center small" style="<%= rq ? '' : 'opacity:.35' %>"><% if (x && x.practical_passed === 0) { %><span class="badge bad">✗</span><% } else if (x && x.quiz_passed) { %><span class="badge ok">Q<%= x.practical_passed ? 'P' : '' %></span><% } else { %><span class="muted">—</span><% } %></td><% } %></tr><% } %>
+</tbody></table></div><%- include('../partials/pager', { p }) %></div>

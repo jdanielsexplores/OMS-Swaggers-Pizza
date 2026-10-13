@@ -1,0 +1,9 @@
+<div class="page-head"><div><h1>Shift handovers</h1></div><a class="btn primary" href="/handover/new">New handover</a></div>
+<form class="filterbar" method="get">
+  <div><label>Search</label><input type="search" name="q" value="<%= f.q %>" placeholder="Name or issue"></div>
+  <div><label>Site</label><select name="site"><option value="">All</option><% for (const s of sites) { %><option value="<%= s.id %>" <%= selected(f.site, s.id) %>><%= s.name %></option><% } %></select></div>
+  <div><label>Acknowledged</label><select name="ack"><option value="">Any</option><option value="pending" <%= selected(f.ack, 'pending') %>>Not yet</option><option value="done" <%= selected(f.ack, 'done') %>>Yes</option></select></div>
+  <div><label>From</label><input type="date" name="from" value="<%= f.from %>"></div><div><label>To</label><input type="date" name="to" value="<%= f.to %>"></div>
+  <div class="fb-actions"><button class="btn primary sm">Filter</button><a class="btn sm" href="/handover">Reset</a></div></form>
+<div class="card flush"><div class="table-wrap"><table class="table responsive"><thead><tr><th>When</th><th>Site</th><th>From</th><th>To</th><th>Acknowledged</th></tr></thead><tbody>
+<% for (const h of items) { %><tr><td data-label="When"><a href="/handover/<%= h.id %>"><%= fmtDateTime(h.created_at) %></a></td><td data-label="Site"><%= h.site_name %></td><td data-label="From"><%= h.from_name %></td><td data-label="To"><%= h.to_name || '—' %></td><td data-label="Ack"><%- h.acknowledged_at ? badge('ok', fmtTime(h.acknowledged_at)) : badge('pending') %></td></tr><% } %></tbody></table></div><% if (!items.length) { %><div class="empty">No handovers match.</div><% } %><%- include('../partials/pager', { p }) %></div>

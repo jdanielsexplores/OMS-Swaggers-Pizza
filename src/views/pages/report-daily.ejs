@@ -1,0 +1,18 @@
+<div class="page-head"><div><h1>Daily operations report</h1><p><%= fmtDate(d) %></p></div><form class="actions" method="get"><input type="date" name="date" value="<%= d %>" data-autosubmit style="width:auto"><button type="button" class="btn" onclick="print()">Print / PDF</button></form></div>
+<div class="kpis">
+  <div class="kpi"><div class="label">Revenue</div><div class="value"><%= money(sales.revenue, 0) %></div></div>
+  <div class="kpi"><div class="label">Pizzas</div><div class="value"><%= num(sales.units) %></div><div class="sub"><%= sales.paid_not_dispensed %> paid-not-dispensed</div></div>
+  <div class="kpi"><div class="label">Waste</div><div class="value"><%= num(waste.reduce((a, w) => a + w.units, 0)) %></div></div>
+  <div class="kpi"><div class="label">Incidents open</div><div class="value"><%= incidents.filter(i => !['resolved','closed'].includes(i.status)).length %></div></div>
+</div>
+<div class="grid g2">
+  <div class="card"><h3>Sales by site</h3><table class="table"><% for (const s of bySite) { %><tr><td><%= s.name %></td><td class="num"><%= num(s.units) %></td><td class="num"><%= money(s.revenue, 0) %></td></tr><% } %></table>
+    <h4 style="margin-top:12px">By flavour</h4><table class="table"><% for (const p of byProduct) { %><tr><td><%= p.name %></td><td class="num"><%= num(p.units) %></td></tr><% } %></table></div>
+  <div class="card"><h3>Controls</h3><table class="table"><% for (const c of compliance) { %><tr><td><%= c.name %></td><td class="num"><%= pct(c.compliance) %> checklists</td></tr><% } %></table>
+    <h4 style="margin-top:12px">Temperature breaches</h4><% if (!temps.length) { %><p class="small muted">None ✅</p><% } %><% for (const t of temps) { %><div class="small"><%- badge('bad', t.reading + '°C') %> <%= t.site_name %> · <%= fmtTime(t.recorded_at) %> · <%= t.action_taken || '' %></div><% } %>
+    <h4 style="margin-top:12px">Close-outs</h4><% for (const c of closeouts) { %><div class="small"><%= c.code %>: variance <%= money(c.variance) %> <%- c.verified_at ? badge('ok','verified') : badge('pending') %></div><% } %><% if (!closeouts.length) { %><p class="small muted">None submitted.</p><% } %></div>
+  <div class="card"><h3>Incidents</h3><ul class="list"><% for (const i of incidents) { %><li><%- badge(i.severity) %><div class="grow small"><a href="/incidents/<%= i.id %>"><b><%= i.title %></b></a><div class="muted"><%= i.site_name %> · <%= i.ref %></div></div><%- badge(i.status) %></li><% } %></ul></div>
+  <div class="card"><h3>People</h3><table class="table small"><% for (const a of attendance) { %><tr><td><%= a.name %></td><td><%= a.site_name %></td><td><%= fmtTime(a.clock_in) %>–<%= a.clock_out ? fmtTime(a.clock_out) : '…' %></td><td><%= a.late_minutes ? a.late_minutes + 'm late' : '' %></td></tr><% } %></table>
+    <% if (missed.length) { %><h4 style="color:var(--bad)">Missed shifts</h4><% for (const m of missed) { %><div class="small"><%= m.name %> · <%= m.site_name %> <%= m.start_time %></div><% } %><% } %>
+    <h4 style="margin-top:12px">Customer cases</h4><% for (const c of cases) { %><div class="small"><%- badge(c.category === 'praise' ? 'ok' : 'info', titleCase(c.category)) %> <%= c.description.slice(0, 90) %></div><% } %><% if (!cases.length) { %><p class="small muted">None.</p><% } %></div>
+</div>

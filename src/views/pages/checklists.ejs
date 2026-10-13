@@ -1,0 +1,31 @@
+<div class="page-head"><div><h1>Checklists</h1><p>Never tick a task before it is done. Every submission records your name and the time.</p></div>
+  <div class="actions"><% if (can('checklists.review')) { %><a class="btn" href="/checklists/review">Review queue <% if (reviewCount) { %><span class="badge warn"><%= reviewCount %></span><% } %></a><% } %><% if (can('checklists.templates')) { %><a class="btn" href="/checklists/templates">Templates</a><% } %></div></div>
+<form class="filters" method="get">
+  <div><label>Site</label><select name="site" data-autosubmit><% for (const s of sites) { %><option value="<%= s.id %>" <%= selected(siteId, s.id) %>><%= s.name %></option><% } %></select></div>
+  <div><label>Date</label><input type="date" name="date" value="<%= date %>" data-autosubmit></div>
+</form>
+<% if (!site) { %><div class="card empty">You are not assigned to any site yet. Ask your Operations Manager.</div><% } else { %>
+<div class="grid g2">
+<% for (const t of templates) { const sub = t.runs.filter(r => r.submitted_at); const draft = t.runs.find(r => r.status === 'draft' && r.user_id === user.id); const overdue = date === today() && t.frequency === 'daily' && t.due_time && nowTime() > t.due_time && !sub.length; %>
+  <div class="card" style="<%= overdue ? 'border-color:var(--bad)' : '' %>">
+    <div class="card-head"><div><h3><%= t.name %></h3><div class="small muted"><%= titleCase(t.frequency) %><%= t.due_time ? ' · due ' + t.due_time : '' %><%= t.sop_code ? ' · ' : '' %><% if (t.sop_code) { %><a href="/handbook/<%= t.sop_code %>"><%= t.sop_code %></a><% } %></div></div>
+      <%- sub.length ? badge(sub.some(r => r.failed_count) ? 'warn' : 'ok', sub.length > 1 ? sub.length + ' done' : 'Done') : overdue ? badge('overdue') : badge('pending','To do') %></div>
+    <p class="small"><%= t.description %></p>
+    <% for (const r of t.runs) { %><div class="small" style="display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-top:1px solid var(--line-2)"><a href="/checklists/run/<%= r.id %>"><%= r.user_name %> · <%= fmtTime(r.submitted_at || r.started_at) %></a><span><%- r.status === 'draft' ? badge('draft','In progress') : badge(r.status) %> <%= r.score != null ? r.score + '%' : '' %></span></div><% } %>
+    <% if (date === today()) { %><a class="btn <%= overdue || draft ? 'primary' : '' %> sm" style="margin-top:10px" href="<%= draft ? '/checklists/run/' + draft.id : `/checklists/start/${t.id}?site=${siteId}` %>"><%= draft ? 'Continue' : sub.length && t.frequency === 'daily' ? 'Start another' : 'Start' %></a><% } %>
+  </div>
+<% } %>
+</div>
+<% } %>
+<div class="card flush" style="margin-top:18px" id="history"><div class="card-head"><h3>Checklist history</h3><span class="small muted">Every submission, newest first</span></div>
+<form class="filterbar" method="get" style="margin:12px 20px;box-shadow:none"><input type="hidden" name="site" value="<%= siteId || '' %>"><input type="hidden" name="date" value="<%= date %>">
+  <div><label>Checklist</label><select name="htpl"><option value="">All</option><% for (const t of allTemplates) { %><option value="<%= t.id %>" <%= selected(hf.htpl, t.id) %>><%= t.name %></option><% } %></select></div>
+  <div><label>Site</label><select name="hsite"><option value="">All my sites</option><% for (const s of sites) { %><option value="<%= s.id %>" <%= selected(hf.hsite, s.id) %>><%= s.name %></option><% } %></select></div>
+  <div><label>Staff</label><select name="hstaff"><option value="">Anyone</option><% for (const u of people) { %><option value="<%= u.id %>" <%= selected(hf.hstaff, u.id) %>><%= u.name %></option><% } %></select></div>
+  <div><label>Status</label><select name="hstatus"><option value="">Any</option><% for (const st of ['draft','submitted','reviewed','rejected']) { %><option value="<%= st %>" <%= selected(hf.hstatus, st) %>><%= titleCase(st) %></option><% } %></select></div>
+  <div><label>Result</label><select name="hfailed"><option value="">Any</option><option value="1" <%= selected(hf.hfailed, '1') %>>With failed items</option></select></div>
+  <div><label>From</label><input type="date" name="hfrom" value="<%= hf.hfrom %>"></div><div><label>To</label><input type="date" name="hto" value="<%= hf.hto %>"></div>
+  <div class="fb-actions"><button class="btn primary sm">Filter</button><a class="btn sm" href="/checklists?site=<%= siteId || '' %>#history">Reset</a></div></form>
+<div class="table-wrap"><table class="table responsive"><thead><tr><th>Checklist</th><th>Site</th><th>By</th><th>When</th><th class="num">Score</th><th>Status</th></tr></thead><tbody>
+<% for (const h of history) { %><tr><td data-label="Checklist"><a href="/checklists/run/<%= h.id %>"><%= h.tpl_name %></a></td><td data-label="Site"><%= h.site_name %></td><td data-label="By"><%= h.user_name %></td><td data-label="When"><%= fmtDateTime(h.submitted_at || h.started_at) %></td><td class="num" data-label="Score"><%= h.score != null ? h.score + '%' : '—' %><%= h.failed_count ? ` (${h.failed_count} ✗)` : '' %></td><td data-label="Status"><%- badge(h.status) %></td></tr><% } %>
+</tbody></table></div><% if (!history.length) { %><div class="empty">No checklists match.</div><% } %><%- include('../partials/pager', { p: hp, hash: 'history' }) %></div>

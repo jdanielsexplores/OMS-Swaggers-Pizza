@@ -1,0 +1,6 @@
+<% if (!attention.length) { %><div class="empty">✅ Nothing needs attention right now.</div><% } %>
+<ul class="list">
+<% for (const a of attention.slice(0, 14)) { %>
+  <li><span class="badge <%= a.level %>" style="margin-top:2px"><%= a.level === 'bad' ? '!' : a.level === 'warn' ? '•' : 'i' %></span><div class="grow"><a href="<%= a.link %>"><b><%= a.text %></b></a><div class="small muted"><%= a.sub %></div></div></li>
+<% } %>
+</ul>

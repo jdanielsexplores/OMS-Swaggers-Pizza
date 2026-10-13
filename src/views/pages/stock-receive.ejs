@@ -1,0 +1,13 @@
+<div class="card" style="max-width:960px"><h2>Receive delivery (SOP-05)</h2>
+<p class="muted">Accept stock only from an approved supplier or authorised Swaggers delivery. Check product, quantity, batch, expiry, packaging and temperature.</p>
+<form method="post" class="form"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="form-row"><div><label>Into</label><select name="location_id"><% for (const l of locs) { %><option value="<%= l.id %>"><%= l.name %></option><% } %></select></div>
+    <div><label>Supplier</label><select name="supplier_id"><% for (const s of suppliers) { %><option value="<%= s.id %>"><%= s.name %></option><% } %></select></div>
+    <div><label>Delivery note / invoice ref</label><input name="reference"></div>
+    <div><label>Delivery temperature °C <span class="hint">(<%= range.min %> to <%= range.max %>)</span></label><input type="number" step="0.1" name="delivery_temp"></div></div>
+  <div class="table-wrap"><table class="table"><thead><tr><th>Product</th><th>Qty accepted</th><th>Batch / lot no.</th><th>Use-by date</th><th>Qty rejected</th></tr></thead><tbody>
+  <% for (const p of products) { %><tr><td><b><%= p.name %></b></td><td><input type="number" min="0" name="qty_<%= p.id %>" style="max-width:100px"></td><td><input name="batch_<%= p.id %>" style="max-width:180px"></td><td><input type="date" name="exp_<%= p.id %>" style="max-width:170px"></td><td><input type="number" min="0" name="rej_<%= p.id %>" style="max-width:90px"></td></tr><% } %>
+  </tbody></table></div>
+  <div class="form-row"><div><label>Reason for any rejection</label><input name="reject_reason" placeholder="Damaged packaging, missing expiry, wrong product…"></div><div><label>Notes</label><input name="notes"></div></div>
+  <div class="callout small">If the delivery temperature is outside the approved range, the batches are placed <b>on hold</b> automatically and a food-safety incident is raised.</div>
+  <div><button class="btn primary">Record delivery</button></div></form></div>

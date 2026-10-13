@@ -1,0 +1,12 @@
+<% const read = sops.filter(s => s.read).length; %>
+<div class="page-head"><div><h1>Handbook & SOPs</h1><p>Swaggers Pizza Operations Playbook v<%= typeof playbookVersion !== 'undefined' ? playbookVersion : '2.0' %> — every approved procedure, always up to date. You've read <b><%= read %>/<%= sops.length %></b>.</p></div>
+  <div class="actions"><% if (hasDocx) { %><a class="btn" href="/handbook/playbook.docx"><%- icon('download') %>Playbook (.docx)</a><% } %><a class="btn" href="/assistant"><%- icon('sparkles') %>Ask Swaggers</a><% if (can('training.assess')) { %><a class="btn" href="/handbook/compliance">Read tracking</a><% } %><% if (can('sops.manage')) { %><a class="btn primary" href="/handbook/new"><%- icon('plus') %>New SOP</a><% } %></div></div>
+<% if (!ackDone) { %><div class="callout"><b>Please sign:</b> confirm you have read the playbook and will follow it. <a href="/handbook/acknowledge">Sign acknowledgement →</a></div><% } %>
+<div class="card" style="margin-bottom:16px;background:var(--brand-50)"><h3 style="margin-bottom:6px">Our promise</h3><p style="margin:0;font-size:16px">Serve customers politely. Keep the machine and area clean. Protect food safety. Check payments and orders. Report problems early.</p></div>
+<form class="filters" method="get"><input type="search" name="q" value="<%= q %>" placeholder="Search procedures… e.g. refund, temperature, QR" style="min-width:280px;flex:1"><button class="btn">Search</button></form>
+<% for (const [cat, label] of Object.entries(CATEGORY_LABELS)) { const list = sops.filter(s => s.category === cat); if (!list.length) continue; %>
+  <h3 style="margin:18px 0 10px"><%= label %></h3>
+  <div class="grid g3"><% for (const s of list) { %><a class="card sop-card" href="/handbook/<%= s.code %>"><div style="display:flex;justify-content:space-between"><span class="sop-code"><%= s.code %></span><%- s.status !== 'approved' ? badge('draft') : s.read ? badge('ok','Read ✓') : badge('pending','Unread') %></div><h4 style="margin:4px 0"><%= s.title %></h4><p class="small muted" style="margin:0"><%= s.purpose %></p></a><% } %></div>
+<% } %>
+<% if (!q) { %><h3 style="margin:22px 0 10px">Extra rules by location</h3>
+<div class="card flush"><table class="table"><% for (const [k, v] of Object.entries(siteRules)) { %><tr><td style="width:150px"><b><%= titleCase(k) %></b></td><td><%= v %></td></tr><% } %></table></div><% } %>

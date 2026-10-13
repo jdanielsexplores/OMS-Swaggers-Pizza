@@ -1,0 +1,11 @@
+<div class="page-head"><div><h1><%= t.title %></h1><p><%= titleCase(t.kind) %> · created by <%= t.creator || '—' %> <%= ago(t.created_at) %><%= t.site_name ? ' · ' + t.site_name : '' %><%= t.machine_code ? ' · ' + t.machine_code : '' %></p></div><div class="actions"><%- badge(t.priority) %><%- badge(t.status) %></div></div>
+<div class="grid g2">
+  <div class="card"><% if (t.description) { %><p style="white-space:pre-wrap"><%= t.description %></p><% } %>
+    <dl class="dl"><dt>Assigned to</dt><dd><%= t.assignee || '—' %></dd><dt>Due</dt><dd><%= fmtDateTime(t.due_at) %></dd><% if (t.incident_ref) { %><dt>Incident</dt><dd><a href="/incidents/<%= t.incident_id %>"><%= t.incident_ref %></a></dd><% } %><% if (t.completed_at) { %><dt>Completed</dt><dd><%= fmtDateTime(t.completed_at) %></dd><dt>Notes</dt><dd><%= t.completion_notes || '—' %></dd><% } %></dl></div>
+  <div class="card"><h3>Update</h3>
+    <form method="post" action="/tasks/<%= t.id %>" class="form"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <select name="status"><% for (const s of ['open','in_progress','done','verified','cancelled']) { %><option value="<%= s %>" <%= selected(t.status, s) %>><%= titleCase(s) %></option><% } %></select>
+      <textarea name="completion_notes" placeholder="What was done?"><%= t.completion_notes || '' %></textarea>
+      <% if (users.length) { %><select name="assigned_to"><option value="">Keep assignee</option><% for (const u of users) { %><option value="<%= u.id %>"><%= u.name %></option><% } %></select><% } %>
+      <button class="btn primary">Save</button></form></div>
+</div>

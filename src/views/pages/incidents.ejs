@@ -1,0 +1,19 @@
+<div class="page-head"><div><h1>Incidents</h1><p>Every fault, payment problem and safety issue — tracked until it is fixed and verified.</p></div><a class="btn report-btn" href="/report"><%- icon('alert') %>Report a problem</a></div>
+<form class="filterbar" method="get">
+  <div><label>Search</label><input type="search" name="q" value="<%= f.q %>" placeholder="Title, ref, error…"></div>
+  <div><label>Status</label><select name="status"><% for (const s of ['open','all','acknowledged','assigned','in_progress','awaiting_verification','resolved','closed']) { %><option value="<%= s %>" <%= selected(f.status, s) %>><%= s === 'open' ? 'All open' : s === 'all' ? 'Any status' : titleCase(s) %></option><% } %></select></div>
+  <div><label>Severity</label><select name="severity"><option value="">Any</option><% for (const s of ['critical','major','minor']) { %><option <%= selected(f.severity, s) %>><%= s %></option><% } %></select></div>
+  <div><label>Type</label><select name="type"><option value="">Any</option><% for (const s of TYPES) { %><option value="<%= s %>" <%= selected(f.type, s) %>><%= titleCase(s) %></option><% } %></select></div>
+  <div><label>Site</label><select name="site"><option value="">All sites</option><% for (const s of sites) { %><option value="<%= s.id %>" <%= selected(f.site, s.id) %>><%= s.name %></option><% } %></select></div>
+  <div><label>Machine</label><select name="machine"><option value="">All</option><% for (const m of machines) { %><option value="<%= m.id %>" <%= selected(f.machine, m.id) %>><%= m.code %></option><% } %></select></div>
+  <div><label>Assigned to</label><select name="assignee"><option value="">Anyone</option><option value="me" <%= selected(f.assignee, 'me') %>>Me</option><% for (const s of staff) { %><option value="<%= s.id %>" <%= selected(f.assignee, s.id) %>><%= s.name %></option><% } %></select></div>
+  <div><label>From</label><input type="date" name="from" value="<%= f.from %>"></div><div><label>To</label><input type="date" name="to" value="<%= f.to %>"></div>
+  <div class="fb-actions"><button class="btn primary sm">Filter</button><a class="btn sm" href="/incidents">Reset</a></div>
+</form>
+<div class="card flush"><% if (!rows.length) { %><div class="empty">No incidents match.</div><% } %>
+<div class="table-wrap"><table class="table responsive"><thead><tr><th>Incident</th><th>Severity</th><th>Site / machine</th><th>Status</th><th>Assigned</th><th>Age</th><th>Target</th></tr></thead><tbody>
+<% for (const i of rows) { const late = i.due_at && i.due_at < sqlNow() && !['resolved','closed'].includes(i.status); %>
+<tr><td data-label="Incident"><a href="/incidents/<%= i.id %>"><b><%= i.title %></b></a><div class="small muted"><%= i.ref %> · <%= titleCase(i.type) %><%= i.sales_paused && !['resolved','closed'].includes(i.status) ? ' · ⛔ sales paused' : '' %><%= i.escalation_level ? ' · escalated' : '' %></div></td>
+<td data-label="Severity"><%- badge(i.severity) %></td><td data-label="Site"><%= i.site_name || '—' %><div class="small muted"><%= i.machine_code || '' %></div></td><td data-label="Status"><%- badge(i.status) %></td>
+<td data-label="Assigned"><%= i.assignee || i.vendor_name || '—' %></td><td data-label="Age"><%= ago(i.created_at) %></td><td data-label="Target"><%- ['resolved','closed'].includes(i.status) ? `<span class="small muted">${duration(i.downtime_minutes)}</span>` : late ? badge('overdue') : `<span class="small">${fmtDateTime(i.due_at)}</span>` %></td></tr><% } %>
+</tbody></table></div><%- include('../partials/pager', { p }) %></div>

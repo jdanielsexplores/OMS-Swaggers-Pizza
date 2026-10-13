@@ -1,0 +1,59 @@
+<div class="page-head"><div><h1><%= run.tpl_name %></h1><p><%= run.site_name %> · <%= run.machine_code || 'No machine' %> · <%= run.user_name %> · <%= fmtDate(run.run_date) %><% if (run.sop_code) { %> · <a href="/handbook/<%= run.sop_code %>" target="_blank">Read <%= run.sop_code %></a><% } %></p></div>
+  <div class="actions"><%- badge(run.status) %><% if (run.score != null) { %><span class="badge <%= run.failed_count ? 'warn' : 'ok' %>"><%= run.score %>%</span><% } %></div></div>
+<% if (run.tpl_desc) { %><div class="callout"><%= run.tpl_desc %></div><% } %>
+<% if (editable) { %>
+<form method="post" enctype="multipart/form-data" class="form">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <% if (machines.length > 1) { %><div style="max-width:300px"><label>Machine</label><select name="machine_id"><% for (const m of machines) { %><option value="<%= m.id %>" <%= selected(run.machine_id, m.id) %>><%= m.code %></option><% } %></select></div><% } %>
+  <div>
+  <% items.forEach((it, idx) => { %>
+    <div class="check-item <%= it.critical ? 'critical' : '' %>">
+      <div class="q"><%= idx + 1 %>. <%= it.text %> <% if (it.critical) { %><span class="badge bad" title="A failure raises an incident">critical</span><% } %> <% if (it.requires_photo) { %><span class="badge info">photo</span><% } %></div>
+      <% if (it.guidance) { %><div class="small muted"><%= it.guidance %></div><% } %>
+      <% if (it.response_type === 'temperature' || it.response_type === 'number') { %>
+        <div style="display:flex;gap:8px;align-items:center;margin-top:8px"><input type="number" step="0.1" name="item_<%= it.id %>" value="<%= it.value ?? '' %>" style="max-width:140px" inputmode="decimal"><% if (it.response_type === 'temperature') { %><span class="small muted">°C · approved range <%= it.min_value ?? range.min %> to <%= it.max_value ?? range.max %></span><% } %></div>
+      <% } else { %>
+        <div class="seg">
+          <input type="radio" id="y<%= it.id %>" name="item_<%= it.id %>" value="yes" <%= checked(it.answer === 'yes') %>><label for="y<%= it.id %>" class="yes">Yes</label>
+          <input type="radio" id="n<%= it.id %>" name="item_<%= it.id %>" value="no" <%= checked(it.answer === 'no') %>><label for="n<%= it.id %>" class="no">No</label>
+          <input type="radio" id="a<%= it.id %>" name="item_<%= it.id %>" value="na" <%= checked(it.answer === 'na') %>><label for="a<%= it.id %>" class="na">N/A</label>
+        </div>
+      <% } %>
+      <details <%= it.resp_notes || it.requires_photo ? 'open' : '' %>><summary>Notes<%= it.requires_photo ? ' & photo' : ' / photo' %></summary>
+        <div class="form-row" style="margin-top:8px"><input type="text" name="notes_<%= it.id %>" value="<%= it.resp_notes || '' %>" placeholder="What did you see / what action did you take?">
+        <div><input type="file" name="photo_<%= it.id %>" accept="image/*" capture="environment"><% if (it.photo) { %><a class="small" href="/uploads/<%= it.photo %>" target="_blank">photo attached ✓</a><% } %></div></div></details>
+    </div>
+  <% }) %>
+  </div>
+  <div><label>Overall notes</label><textarea name="run_notes"><%= run.notes || '' %></textarea></div>
+  <div class="callout bad small">If a safety, food, payment or machine check fails: <b>stop selling if it is unsafe</b> and tell the Manager. Submitting with a failed critical item raises an incident automatically.</div>
+  <div class="actions"><button class="btn" name="action" value="save">Save progress</button><button class="btn primary lg" name="action" value="submit">Submit checklist</button></div>
+</form>
+<% } else { %>
+<div class="card flush"><div class="table-wrap"><table class="table responsive"><thead><tr><th>#</th><th>Check</th><th>Answer</th><th>Notes</th></tr></thead><tbody>
+<% items.forEach((it, idx) => { const bad = it.answer === 'no' || (it.response_type === 'temperature' && it.value != null && (it.value < range.min || it.value > range.max)); %>
+  <tr style="<%= bad ? 'background:var(--bad-bg)' : '' %>"><td data-label="#"><%= idx + 1 %></td><td data-label="Check"><%= it.text %> <%- it.critical ? badge('bad','critical') : '' %></td>
+  <td data-label="Answer"><%- it.answer === 'value' ? `<b>${esc(String(it.value))}${it.response_type === 'temperature' ? '°C' : ''}</b>` : it.answer ? badge(it.answer === 'yes' ? 'ok' : it.answer === 'no' ? 'bad' : 'info', it.answer.toUpperCase()) : '—' %></td>
+  <td data-label="Notes" class="small"><%= it.resp_notes || '' %><% if (it.photo) { %> <a href="/uploads/<%= it.photo %>" target="_blank">📷 photo</a><% } %></td></tr>
+<% }) %></tbody></table></div></div>
+<% if (run.notes) { %><div class="card" style="margin-top:12px"><b>Notes:</b> <%= run.notes %></div><% } %>
+<div class="grid g2" style="margin-top:16px">
+  <div class="card"><h3>Review</h3>
+    <dl class="dl"><dt>Submitted</dt><dd><%= fmtDateTime(run.submitted_at) %></dd><dt>Reviewed by</dt><dd><%= run.reviewer_name || '—' %> <%= run.reviewed_at ? fmtDateTime(run.reviewed_at) : '' %></dd><% if (run.review_notes) { %><dt>Review notes</dt><dd><%= run.review_notes %></dd><% } %></dl>
+    <% if (can('checklists.review') && run.status === 'submitted' && run.user_id !== user.id) { %>
+      <form method="post" action="/checklists/run/<%= run.id %>/review" class="form" style="margin-top:12px"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <textarea name="review_notes" placeholder="Feedback / corrective action confirmed"></textarea>
+        <label class="check"><input type="checkbox" name="create_task" value="1"> If returning: create a "redo" task for the staff member</label>
+        <div class="actions"><button class="btn ok" name="decision" value="approve">Sign off</button><button class="btn danger" name="decision" value="reject">Return to staff</button></div></form>
+    <% } %>
+  </div>
+  <div class="card"><h3>Corrections (audit trail)</h3>
+    <% if (!corrections.length) { %><p class="muted small">No corrections.</p><% } %>
+    <ul class="list"><% for (const c of corrections) { %><li><div class="grow small"><b><%= c.text %></b>: <%= c.old_value %> → <%= c.new_value %><div class="muted"><%= c.name %> · <%= fmtDateTime(c.created_at) %> · "<%= c.reason %>"</div></div></li><% } %></ul>
+    <% if (run.user_id === user.id || can('checklists.review')) { %>
+    <details><summary class="small">Correct an answer</summary><form method="post" action="/checklists/run/<%= run.id %>/correct" class="form" style="margin-top:8px"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <select name="item_id"><% for (const it of items) { %><option value="<%= it.id %>"><%= it.text.slice(0, 70) %></option><% } %></select>
+      <input name="new_value" placeholder="yes / no / na / number" required><input name="reason" placeholder="Reason for correction (required)" required><button class="btn sm">Record correction</button></form></details><% } %>
+  </div>
+</div>
+<% } %>

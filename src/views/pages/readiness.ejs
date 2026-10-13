@@ -1,0 +1,23 @@
+<% const done = items.filter(i => ['confirmed','not_applicable'].includes(i.status)).length; %>
+<div class="page-head"><div><h1>Launch Readiness</h1><p>Keep each item open until there is an approved answer — do not fill gaps by guessing (Playbook §10). Filter by site to see what each machine location still needs.</p></div></div>
+<div class="machines" style="margin-bottom:18px">
+  <a class="machine" href="?site=business" style="<%= f.site === 'business' ? 'border-color:var(--brand)' : '' %>"><div class="top"><span class="thumb" style="display:grid;place-items:center"><%- icon('rocket') %></span><div style="flex:1"><div>Business-wide</div><div class="site">Applies to every site</div></div><b class="mono"><%= biz.total ? Math.round((biz.done || 0) / biz.total * 100) : 0 %>%</b></div><div class="progress <%= biz.done === biz.total ? 'ok' : '' %>" style="margin-top:12px"><span style="width:<%= biz.total ? (biz.done || 0) / biz.total * 100 : 0 %>%"></span></div></a>
+  <% for (const s of bySite) { const p = s.total ? Math.round(s.done / s.total * 100) : 0; %>
+  <a class="machine" href="?site=<%= s.id %>" style="<%= String(f.site) === String(s.id) ? 'border-color:var(--brand)' : '' %>"><div class="top"><span class="thumb"><img src="/img/machine.png" alt=""></span><div style="flex:1;min-width:0"><div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><%= s.name %></div><div class="site"><%= s.machines || 'No machine yet' %></div></div><b class="mono"><%= p %>%</b></div>
+    <div class="progress <%= p === 100 ? 'ok' : '' %>" style="margin-top:12px"><span style="width:<%= p %>%"></span></div><div class="small muted" style="margin-top:6px"><%- badge(s.status) %> <%= s.done %>/<%= s.total %> confirmed</div></a>
+  <% } %>
+</div>
+<form class="filters" method="get">
+  <div><label>Site / machine location</label><select name="site" data-autosubmit><option value="">All sites</option><option value="business" <%= selected(f.site, 'business') %>>Business-wide items</option><% for (const s of bySite) { %><option value="<%= s.id %>" <%= selected(f.site, s.id) %>><%= s.name %><%= s.machines ? ' (' + s.machines + ')' : '' %></option><% } %></select></div>
+  <div><label>Status</label><select name="status" data-autosubmit><option value="">Any status</option><option value="outstanding" <%= selected(f.status, 'outstanding') %>>Outstanding (open + in progress)</option><% for (const st of ['open','in_progress','confirmed','not_applicable']) { %><option value="<%= st %>" <%= selected(f.status, st) %>><%= titleCase(st) %></option><% } %></select></div>
+  <div><label>Search</label><input type="search" name="q" value="<%= f.q || '' %>" placeholder="Item…"></div>
+  <button class="btn sm primary" style="align-self:flex-end">Filter</button>
+  <% if (f.site || f.status || f.q) { %><a class="btn sm" href="/readiness" style="align-self:flex-end">Clear filters</a><% } %>
+  <span class="small muted" style="margin-left:auto">page <%= p.page %> of <%= p.pages %></span>
+</form>
+<div class="card flush"><%- include('../partials/readiness-table', { items, showSite: !f.site || f.site === '' }) %><% if (!items.length) { %><div class="empty">Nothing matches these filters.</div><% } %><%- include('../partials/pager', { p }) %></div>
+<div class="card" style="margin-top:18px;max-width:820px"><h3>Add an item</h3>
+  <form method="post" action="/readiness" class="form-row"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div><label>Scope</label><select name="site_id"><option value="">Business-wide</option><% for (const s of sites) { %><option value="<%= s.id %>" <%= selected(f.site, s.id) %>><%= s.name %></option><% } %></select></div>
+    <div><label>Item</label><input name="item" required></div><div><label>Owner / source</label><input name="owner_source"></div>
+    <div style="align-self:end"><button class="btn primary">Add</button></div></form></div>

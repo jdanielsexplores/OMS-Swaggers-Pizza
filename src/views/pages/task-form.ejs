@@ -1,0 +1,7 @@
+<div class="card" style="max-width:760px"><h2>Assign a task</h2><form method="post" action="/tasks" class="form"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div><label>Task</label><input name="title" required></div><div><label>Details</label><textarea name="description"></textarea></div>
+  <div class="form-row"><div><label>Assign to</label><select name="assigned_to" required><% for (const u of users) { %><option value="<%= u.id %>"><%= u.name %> — <%= roleLabel(u.role) %></option><% } %></select></div>
+    <div><label>Type</label><select name="kind"><option value="task">Task</option><option value="corrective_action">Corrective action</option><option value="follow_up">Follow-up</option><option value="project">Project</option></select></div>
+    <div><label>Priority</label><select name="priority"><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option><option value="low">Low</option></select></div></div>
+  <div class="form-row"><div><label>Site</label><select name="site_id"><option value="">—</option><% for (const s of sites) { %><option value="<%= s.id %>"><%= s.name %></option><% } %></select></div><div><label>Machine</label><select name="machine_id"><option value="">—</option><% for (const m of machines) { %><option value="<%= m.id %>"><%= m.code %></option><% } %></select></div><div><label>Due</label><input type="datetime-local" name="due_at"></div></div>
+  <div><button class="btn primary">Assign</button></div></form></div>

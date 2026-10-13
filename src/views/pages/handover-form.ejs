@@ -1,0 +1,9 @@
+<div class="card" style="max-width:820px"><h2>Shift handover (SOP-09 / SOP-19)</h2>
+<form method="get" style="margin-bottom:12px"><label>Site</label><select name="site" data-autosubmit><% for (const s of sites) { %><option value="<%= s.id %>" <%= selected(siteId, s.id) %>><%= s.name %></option><% } %></select></form>
+<form method="post" action="/handover" class="form"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="site_id" value="<%= siteId %>">
+  <div><label>Handing over to <span class="hint">(optional)</span></label><select name="to_user_id"><option value="">Next shift / Supervisor</option><% for (const c of colleagues) { %><option value="<%= c.id %>"><%= c.name %></option><% } %></select></div>
+  <div><label>Stock remaining & shortages</label><textarea name="stock_summary"><%= stockLines %></textarea></div>
+  <div><label>Open issues (incidents, customer cases, machine warnings)</label><textarea name="open_issues"><%= [...open.incidents.map(i => `${i.ref} [${i.severity}] ${i.title}`), ...open.cases.map(c => `${c.ref}: ${c.description}`)].join('\n') %></textarea></div>
+  <div><label>Payment issues / unresolved orders</label><textarea name="cash_payment_notes"><%= open.payments.map(p => `${titleCase(p.kind)} ${money(p.amount)} ref ${p.payment_ref || '—'}`).join('\n') %></textarea></div>
+  <div><label>Keys, equipment & what the next shift must do first</label><textarea name="notes"></textarea></div>
+  <div><button class="btn primary">Submit handover</button></div></form></div>

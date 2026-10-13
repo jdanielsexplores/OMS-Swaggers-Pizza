@@ -1,0 +1,20 @@
+<div class="page-head"><div><h1>Customers</h1><p>Complaints, refunds, QR feedback and praise. Listen, apologise, solve or send, thank (L.A.S.T.).</p></div>
+  <div class="actions"><a class="btn" href="/customers/refunds">Refunds</a><a class="btn primary" href="/customers/new"><%- icon('plus') %>New case</a></div></div>
+<div class="kpis">
+  <div class="kpi"><div class="label">Avg rating (30d)</div><div class="value"><%= stats.avg_rating ? stats.avg_rating + ' ★' : '—' %></div><div class="sub"><%= stats.ratings || 0 %> ratings</div></div>
+  <div class="kpi <%= stats.open ? 'warn' : 'ok' %>"><div class="label">Open cases</div><div class="value"><%= stats.open || 0 %></div></div>
+  <div class="kpi"><div class="label">Time to resolve</div><div class="value"><%= stats.avg_hours == null ? '—' : stats.avg_hours.toFixed(0) + 'h' %></div><div class="sub">target: update within 48h</div></div>
+  <div class="kpi ok"><div class="label">Praise</div><div class="value"><%= stats.praise || 0 %></div></div>
+</div>
+<form class="filterbar" method="get">
+  <div><label>Search</label><input type="search" name="q" value="<%= f.q %>" placeholder="Words, ref, payment ref"></div>
+  <div><label>Status</label><select name="status"><% for (const st of ['open','all','investigating','awaiting_refund','resolved','closed']) { %><option value="<%= st %>" <%= selected(status, st) %>><%= st === 'open' ? 'Open' : st === 'all' ? 'Any status' : titleCase(st) %></option><% } %></select></div>
+  <div><label>Category</label><select name="category"><option value="">All</option><% for (const c of CATS) { %><option value="<%= c %>" <%= selected(f.category, c) %>><%= titleCase(c) %></option><% } %></select></div>
+  <div><label>Channel</label><select name="channel"><option value="">All</option><% for (const c of ['in_person','qr_feedback','phone','social','email']) { %><option value="<%= c %>" <%= selected(f.channel, c) %>><%= titleCase(c) %></option><% } %></select></div>
+  <div><label>Site</label><select name="site"><option value="">All</option><% for (const s of sites) { %><option value="<%= s.id %>" <%= selected(f.site, s.id) %>><%= s.name %></option><% } %></select></div>
+  <div><label>Rating</label><select name="rating"><option value="">Any</option><option value="2" <%= selected(f.rating, '2') %>>2★ or lower</option><option value="3" <%= selected(f.rating, '3') %>>3★ or lower</option></select></div>
+  <div><label>From</label><input type="date" name="from" value="<%= f.from %>"></div><div><label>To</label><input type="date" name="to" value="<%= f.to %>"></div>
+  <div class="fb-actions"><button class="btn primary sm">Filter</button><a class="btn sm" href="/customers">Reset</a></div></form>
+<div class="card flush"><div class="table-wrap"><table class="table responsive"><thead><tr><th>Case</th><th>Category</th><th>Site</th><th>Channel</th><th>Rating</th><th>Status</th><th>Age</th></tr></thead><tbody>
+<% for (const c of rows) { %><tr><td data-label="Case"><a href="/customers/<%= c.id %>"><b><%= c.description.slice(0, 70) %><%= c.description.length > 70 ? '…' : '' %></b></a><div class="small muted"><%= c.ref %><%= c.product_name ? ' · ' + c.product_name : '' %></div></td><td data-label="Category"><%- badge(c.category === 'praise' ? 'ok' : c.category === 'food_safety' ? 'critical' : 'info', titleCase(c.category)) %></td><td data-label="Site"><%= c.site_name || '—' %></td><td data-label="Channel" class="small"><%= titleCase(c.channel) %></td><td data-label="Rating"><%= c.rating ? '★'.repeat(c.rating) : '—' %></td><td data-label="Status"><%- badge(c.status) %></td><td data-label="Age"><%= ago(c.created_at) %></td></tr><% } %>
+</tbody></table></div><% if (!rows.length) { %><div class="empty">No cases match.</div><% } %><%- include('../partials/pager', { p }) %></div>

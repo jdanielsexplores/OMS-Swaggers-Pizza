@@ -1,0 +1,15 @@
+<div class="page-head"><div><h1><%= titleCase(c.category) %> — <%= c.ref %></h1><p><%= c.site_name || '' %> <%= c.machine_code ? '· ' + c.machine_code : '' %> · <%= titleCase(c.channel) %> · <%= fmtDateTime(c.created_at) %> <%= c.created_name ? 'by ' + c.created_name : '(customer QR)' %></p></div><%- badge(c.status) %></div>
+<div class="grid g3">
+  <div class="card span2"><p style="white-space:pre-wrap;font-size:16px"><%= c.description %></p>
+    <dl class="dl"><dt>Rating</dt><dd><%= c.rating ? '★'.repeat(c.rating) : '—' %></dd><dt>Flavour</dt><dd><%= c.product_name || '—' %></dd><dt>Order / payment</dt><dd><%= c.order_ref || '—' %> / <%= c.payment_ref || '—' %></dd>
+      <dt>Customer</dt><dd><%= canSeeContact ? [c.customer_name, c.customer_contact].filter(Boolean).join(' · ') || '—' : 'Restricted' %></dd><dt>Assigned</dt><dd><%= c.assignee || '—' %></dd><dt>Outcome</dt><dd><%= c.outcome || '—' %></dd></dl>
+    <% if (refunds.length) { %><h4 style="margin-top:14px">Refunds</h4><% for (const r of refunds) { %><div><%- badge(r.status) %> <%= money(r.amount) %> · <%= r.reason || '' %> <%= r.paid_ref ? '· paid ref ' + r.paid_ref : '' %></div><% } %><% } %></div>
+  <% if (can('cases.manage')) { %><div class="stack">
+    <div class="card"><h3>Update</h3><form method="post" action="/customers/<%= c.id %>" class="form"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <select name="status"><% for (const s of ['open','investigating','awaiting_refund','resolved','closed']) { %><option value="<%= s %>" <%= selected(c.status, s) %>><%= titleCase(s) %></option><% } %></select>
+      <select name="assigned_to"><option value="">Assign…</option><% for (const s of staff) { %><option value="<%= s.id %>" <%= selected(c.assigned_to, s.id) %>><%= s.name %></option><% } %></select>
+      <textarea name="outcome" placeholder="Outcome / what we told the customer"><%= c.outcome || '' %></textarea><button class="btn primary">Save</button></form></div>
+    <div class="card"><h3>Request refund</h3><p class="small muted">Up to GH₵<%= limit %>: Ops Manager approves. Above: Owner. Paid only by Accounts through the provider — never cash from staff.</p>
+      <form method="post" action="/customers/<%= c.id %>/refund" class="form"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="number" step="0.01" name="amount" placeholder="Amount (GHS)"><select name="method"><option value="momo_reversal">MoMo reversal</option><option value="momo_transfer">MoMo transfer</option><option value="voucher">Free pizza voucher</option></select><input name="reason" placeholder="Reason" required><button class="btn">Request approval</button></form></div>
+  </div><% } %>
+</div>

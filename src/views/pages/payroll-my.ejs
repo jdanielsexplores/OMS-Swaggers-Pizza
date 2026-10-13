@@ -1,0 +1,4 @@
+<div class="page-head"><div><h1>My payslips</h1><p>Payslips appear here once payroll for the month is finalised.</p></div></div>
+<div class="card flush"><div class="table-wrap"><table class="table responsive"><thead><tr><th>Month</th><th class="num">Worked days</th><th class="num">Overtime</th><th class="num">Gross</th><th class="num">Net</th><th></th></tr></thead><tbody>
+<% for (const i of items) { %><tr><td data-label="Month"><b><%= i.month %></b></td><td class="num" data-label="Worked"><%= i.worked_days %>/<%= i.scheduled_days %></td><td class="num" data-label="OT"><%= i.overtime_hours %>h</td><td class="num" data-label="Gross"><%= money(i.gross) %></td><td class="num" data-label="Net"><b><%= money(i.net) %></b></td><td><a class="btn sm" href="/payroll/slip/<%= i.id %>">View</a></td></tr><% } %>
+</tbody></table></div><% if (!items.length) { %><div class="empty">No finalised payslips yet.</div><% } %><%- include('../partials/pager', { p }) %></div>

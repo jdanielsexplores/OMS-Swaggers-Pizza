@@ -1,0 +1,18 @@
+<div class="page-head"><div><h1>Approvals</h1><p>Prices, menu, refunds, spending, SOP changes, leave and new sites — decided in one place, with an audit trail.</p></div>
+</div>
+<form class="filterbar" method="get">
+  <div><label>Search</label><input type="search" name="q" value="<%= f.q %>" placeholder="Title or details"></div>
+  <div><label>Status</label><select name="status"><% for (const s of ['pending','approved','rejected','all']) { %><option value="<%= s %>" <%= selected(status, s) %>><%= s === 'all' ? 'Any status' : titleCase(s) %></option><% } %></select></div>
+  <div><label>Type</label><select name="kind"><option value="">Any</option><% for (const k of ['refund','expense','price_change','menu_change','sop_change','leave','new_site','purchase','other']) { %><option value="<%= k %>" <%= selected(f.kind, k) %>><%= titleCase(k) %></option><% } %></select></div>
+  <div><label>From</label><input type="date" name="from" value="<%= f.from %>"></div><div><label>To</label><input type="date" name="to" value="<%= f.to %>"></div>
+  <div class="fb-actions"><button class="btn primary sm">Filter</button><a class="btn sm" href="/approvals">Reset</a></div>
+</form>
+<div class="grid g3">
+  <div class="card span2 flush"><div class="table-wrap"><table class="table responsive"><thead><tr><th>Request</th><th>Type</th><th class="num">Amount</th><th>Decides</th><th>Status</th></tr></thead><tbody>
+  <% for (const a of rows) { %><tr><td data-label="Request"><a href="/approvals/<%= a.id %>"><b><%= a.title %></b></a><div class="small muted"><%= a.requester %> · <%= ago(a.created_at) %></div></td><td data-label="Type"><%= titleCase(a.kind) %></td><td class="num" data-label="Amount"><%= a.amount ? money(a.amount) : '—' %></td><td data-label="Decides"><%= a.required_role === 'owner' ? 'Owner' : 'Ops Manager' %></td><td data-label="Status"><%- badge(a.status) %><% if (a.decider) { %><div class="small muted"><%= a.decider %></div><% } %></td></tr><% } %>
+  </tbody></table></div><% if (!rows.length) { %><div class="empty">Nothing matches. 🎉</div><% } %><%- include('../partials/pager', { p }) %></div>
+  <div class="card"><h3>Ask for approval</h3><form method="post" action="/approvals" class="form"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <select name="kind"><option value="purchase">Purchase / spending</option><option value="menu_change">Menu / promotion</option><option value="other">Other decision</option></select>
+    <input name="title" placeholder="What needs approving?" required><textarea name="details" placeholder="Why? Options? Cost?"></textarea><input type="number" step="0.01" name="amount" placeholder="Amount (GHS, optional)">
+    <select name="required_role"><option value="ops_manager">Operations Manager</option><option value="owner">Owner</option></select><button class="btn primary">Send</button></form></div>
+</div>

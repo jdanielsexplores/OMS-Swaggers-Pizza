@@ -1,0 +1,15 @@
+<div class="page-head"><div><h1>Ask Swaggers <%- icon('sparkles') %></h1><p>Ask about any procedure. Answers come only from approved Swaggers documents. It does not replace your Manager's decision.</p></div>
+  <form method="post" action="/assistant/clear"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn sm">New conversation</button></form></div>
+<% if (!aiOn) { %><div class="callout info">AI is not switched on yet (add <code>ANTHROPIC_API_KEY</code>). You'll get matching handbook procedures instead.</div><% } %>
+<div class="card" style="max-width:860px">
+  <div class="chat">
+    <% if (!history.length) { %>
+      <div class="msg bot">Hi <%= user.name.split(' ')[0] %>! I can explain any Swaggers procedure. Try one of these:</div>
+      <div class="chips"><% for (const s of ['A customer was charged but no pizza came out. What do I do?', 'What temperature checks do I need to do?', 'How do I handle a customer complaint?', 'The machine smells like burning — what now?', 'How do I refill the machine?', 'Who approves a refund?']) { %><form method="post" class="inline"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="question" value="<%= s %>"><button class="btn sm"><%= s %></button></form><% } %></div>
+    <% } %>
+    <% for (const m of history) { %><div class="msg <%= m.role === 'user' ? 'user' : 'bot' %>"><%- m.role === 'user' ? esc(m.content) : esc(m.content).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\b(SOP-\d{2})\b/g, '<a href="/handbook/$1">$1</a>') %></div><% } %>
+    <div id="end"></div>
+  </div>
+  <% if (history.length) { %><form method="post" action="/assistant/feedback" class="actions small" style="margin-top:8px"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><span class="muted">Was this helpful?</span><button class="btn sm ghost" name="helpful" value="1">👍</button><button class="btn sm ghost" name="helpful" value="0">👎</button></form><% } %>
+  <form method="post" class="form" style="margin-top:14px"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><textarea name="question" placeholder="Type your question…" style="min-height:70px" required><%= q %></textarea><div><button class="btn primary">Ask</button> <span class="small muted">Safety emergency? Don't type — make it safe and call your Manager.</span></div></form>
+</div>

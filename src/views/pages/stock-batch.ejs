@@ -1,0 +1,9 @@
+<div class="page-head"><div><h1><%= b.product_name %> · <%= b.batch_no %></h1><p>Supplier <%= b.supplier || '—' %> · received <%= fmtDate(b.received_at) %> · use-by <%= fmtDate(b.expires_at) %> · <%= sold %> sold</p></div><%- badge(b.status) %></div>
+<% if (b.hold_reason) { %><div class="callout bad"><%= b.hold_reason %></div><% } %>
+<div class="grid g2">
+  <div class="card"><h3>Where is it now?</h3><table class="table"><% for (const w of where) { %><tr><td><%= w.name %></td><td class="num"><b><%= num(w.qty) %></b></td></tr><% } %></table><% if (!where.length) { %><div class="empty">None left in stock.</div><% } %></div>
+  <% if (can('stock.batches')) { %><div class="card"><h3>Hold / recall / release</h3><form method="post" action="/stock/batches/<%= b.id %>/status" class="form" data-confirm="Change batch status? Sites holding this batch will be alerted."><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <select name="status"><option value="on_hold">Put on hold</option><option value="recalled">Recall</option><option value="released">Release for sale (Manager)</option></select><input name="reason" placeholder="Reason" required><button class="btn danger">Apply</button></form></div><% } %>
+</div>
+<div class="card flush" style="margin-top:16px"><div class="card-head"><h3>Movements</h3></div><div class="table-wrap"><table class="table responsive"><thead><tr><th>When</th><th>Type</th><th class="num">Qty</th><th>From</th><th>To</th><th>By</th></tr></thead><tbody>
+<% for (const m of moves) { %><tr><td data-label="When"><%= fmtDateTime(m.occurred_at) %></td><td data-label="Type"><%= titleCase(m.kind) %></td><td class="num" data-label="Qty"><%= num(m.qty) %></td><td data-label="From"><%= m.from_name || '—' %></td><td data-label="To"><%= m.to_name || '—' %></td><td data-label="By"><%= m.user_name || 'system' %></td></tr><% } %></tbody></table></div><%- include('../partials/pager', { p: mvp }) %></div>

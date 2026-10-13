@@ -1,0 +1,5 @@
+<div class="card" style="max-width:820px"><h2>Expense budget — <%= month %></h2><p class="muted">Set a monthly budget per category. "Last month" shows the actual spend to guide you.</p>
+<form method="post" action="/finance/budgets" class="form"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="month" value="<%= month %>">
+<table class="table"><thead><tr><th>Category</th><th class="num">Last month</th><th>Budget (GHS)</th></tr></thead><tbody>
+<% for (const c of cats) { %><tr><td><%= c.name %><div class="small muted"><%= c.parent %></div></td><td class="num"><%= money(c.last_month, 0) %></td><td><input type="number" step="1" name="b_<%= c.id %>" value="<%= c.budget ?? '' %>" style="max-width:140px"></td></tr><% } %></tbody></table>
+<div><button class="btn primary">Save budget</button></div></form></div>

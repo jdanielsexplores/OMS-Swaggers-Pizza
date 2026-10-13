@@ -1,0 +1,12 @@
+<div class="card" style="max-width:900px"><h2>Load a machine</h2>
+<form method="get" class="form-row" style="margin-bottom:14px">
+  <div><label>Machine</label><select name="machine" data-autosubmit><% for (const m of machines) { %><option value="<%= m.id %>" <%= selected(machineId, m.id) %>><%= m.code %> — <%= m.site_name %></option><% } %></select></div>
+  <div><label>Take stock from</label><select name="from" data-autosubmit><% for (const l of fromLocs) { %><option value="<%= l.id %>" <%= selected(fromId, l.id) %>><%= l.name %></option><% } %></select></div></form>
+<form method="post" class="form"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="machine_id" value="<%= machineId %>"><input type="hidden" name="from_id" value="<%= fromId %>">
+  <div class="table-wrap"><table class="table"><thead><tr><th>Flavour</th><th class="num">In machine</th><th class="num">Available</th><th>Load first (FEFO)</th><th>Qty to load</th></tr></thead><tbody>
+  <% for (const p of products) { %><tr><td><b><%= p.name %></b></td><td class="num" style="<%= p.inMachine <= p.reorder_level ? 'color:var(--bad);font-weight:700' : '' %>"><%= num(p.inMachine) %></td><td class="num"><%= num(p.available) %></td>
+    <td class="small"><%= p.fefo.map(b => `${b.batch_no} (exp ${fmtDate(b.expires_at)})`).join(', ') || '—' %></td><td><input type="number" min="0" max="<%= Math.max(0, p.available) %>" name="qty_<%= p.id %>" style="max-width:100px"></td></tr><% } %>
+  </tbody></table></div>
+  <div><label>Reference <span class="hint">(optional)</span></label><input name="reference"></div>
+  <div class="callout small">Refill only using the supplier-approved method. Never open restricted panels. Held, recalled or expired batches are never moved. You'll go to the Refill checklist next.</div>
+  <div><button class="btn primary">Record load</button></div></form></div>

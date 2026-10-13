@@ -1,0 +1,22 @@
+<%
+  // Usage: include('../partials/pager', { p })   — p comes from paginate()
+  const nums = [];
+  for (let i = 1; i <= p.pages; i++) if (i === 1 || i === p.pages || Math.abs(i - p.page) <= 2) nums.push(i); else if (nums[nums.length - 1] !== '…') nums.push('…');
+  const anchor = typeof hash !== 'undefined' && hash ? '#' + hash : '';
+%>
+<% if (p.total > 0) { %>
+<div class="pager">
+  <span class="pager-info">Showing <b><%= p.from %>–<%= p.to %></b> of <b><%= num(p.total) %></b></span>
+  <% if (p.pages > 1) { %>
+  <nav class="pager-nav" aria-label="Pages">
+    <a class="pg <%= p.page === 1 ? 'off' : '' %>" href="<%= pageUrl(path, query, p.param, p.page - 1) + anchor %>" aria-label="Previous page">‹</a>
+    <% for (const n of nums) { if (n === '…') { %><span class="pg gap">…</span><% } else { %><a class="pg <%= n === p.page ? 'on' : '' %>" href="<%= pageUrl(path, query, p.param, n) + anchor %>"><%= n %></a><% } } %>
+    <a class="pg <%= p.page === p.pages ? 'off' : '' %>" href="<%= pageUrl(path, query, p.param, p.page + 1) + anchor %>" aria-label="Next page">›</a>
+  </nav>
+  <form method="get" class="pager-jump"><% for (const [k, v] of Object.entries(query)) { if (k === p.param || k === p.perParam || v === '') continue; %><input type="hidden" name="<%= k %>" value="<%= v %>"><% } %>
+    <label>Go to <input type="number" name="<%= p.param %>" min="1" max="<%= p.pages %>" value="<%= p.page %>"></label>
+    <select name="<%= p.perParam %>" data-autosubmit aria-label="Rows per page"><% for (const n of [10, 20, 50, 100]) { %><option value="<%= n %>" <%= selected(p.perPage, n) %>><%= n %> / page</option><% } %></select>
+  </form>
+  <% } %>
+</div>
+<% } %>

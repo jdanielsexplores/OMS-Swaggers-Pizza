@@ -1,0 +1,25 @@
+<div class="page-head"><div><h1><%= user.name %></h1><p><%= roleLabel(user.role) %> · <%= user.staff_no || '' %> · <%= user.email %></p></div>
+  <div class="actions"><a class="btn" href="/account/password">Change password</a></div></div>
+<div class="grid g2">
+  <div class="card">
+    <h3>My details</h3>
+    <form method="post" class="form">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div><label>Phone (for urgent alerts)</label><input type="tel" name="phone" value="<%= user.phone || '' %>"></div>
+      <div><label>Emergency contact</label><input type="text" name="emergency_contact" value="<%= user.emergency_contact || '' %>"></div>
+      <div><button class="btn primary">Save</button></div>
+    </form>
+  </div>
+  <div class="card">
+    <h3>My access</h3>
+    <dl class="dl">
+      <dt>Role</dt><dd><%= roleLabel(user.role) %></dd>
+      <dt>Sites</dt><dd><%= sites.length ? sites.map(s => s.name).join(', ') : (['owner','ops_manager','accounts'].includes(user.role) ? 'All sites' : 'None assigned') %></dd>
+      <dt>Cleared to work alone</dt><dd><%- user.cleared_to_work_alone ? badge('ok','Yes') : badge('pending','Not yet — complete training') %></dd>
+      <dt>Last sign-in</dt><dd><%= fmtDateTime(user.last_login_at) %></dd>
+    </dl>
+    <h4 style="margin-top:16px">Signed acknowledgements</h4>
+    <% if (!acks.length) { %><p class="muted">None yet. <a href="/handbook/acknowledge">Sign the playbook acknowledgement</a>.</p><% } %>
+    <ul class="list"><% for (const a of acks) { %><li><div class="grow"><b><%= titleCase(a.document) %></b> v<%= a.version %></div><span class="muted small"><%= fmtDate(a.signed_at) %></span></li><% } %></ul>
+  </div>
+</div>

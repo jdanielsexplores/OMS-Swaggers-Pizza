@@ -1,0 +1,11 @@
+<div class="page-head"><div><h1>Audit log</h1><p>Who did what, and when. Kept for accountability and corrections (Portal security rules).</p></div><a class="btn" href="/reports/export/audit_log"><%- icon('download') %>CSV</a></div>
+<form class="filterbar" method="get">
+  <div><label>Action</label><input type="search" name="action" value="<%= f.action %>" placeholder="e.g. refund, clock, payroll"></div>
+  <div><label>Details contain</label><input type="search" name="q" value="<%= f.q %>"></div>
+  <div><label>User</label><select name="user"><option value="">Anyone</option><% for (const u of users) { %><option value="<%= u.id %>" <%= selected(f.user, u.id) %>><%= u.name %></option><% } %></select></div>
+  <div><label>Record type</label><select name="entity"><option value="">Any</option><% for (const e of entities) { %><option value="<%= e %>" <%= selected(f.entity, e) %>><%= titleCase(e) %></option><% } %></select></div>
+  <div><label>From</label><input type="date" name="from" value="<%= f.from %>"></div><div><label>To</label><input type="date" name="to" value="<%= f.to %>"></div>
+  <div class="fb-actions"><button class="btn primary sm">Filter</button><a class="btn sm" href="/admin/audit">Reset</a></div></form>
+<div class="card flush"><div class="table-wrap"><table class="table responsive"><thead><tr><th>When</th><th>User</th><th>Action</th><th>Record</th><th>Details</th><th>IP</th></tr></thead><tbody>
+<% for (const a of rows) { %><tr><td data-label="When" class="nowrap"><%= fmtDateTime(a.created_at) %></td><td data-label="User"><%= a.name || '—' %></td><td data-label="Action"><code><%= a.action %></code></td><td data-label="Record" class="small"><%= a.entity || '' %> <%= a.entity_id || '' %></td><td data-label="Details" class="small" style="max-width:380px;word-break:break-word"><%= (a.details || '').slice(0, 220) %></td><td data-label="IP" class="small muted"><%= a.ip || '' %></td></tr><% } %>
+</tbody></table></div><% if (!rows.length) { %><div class="empty">No entries match.</div><% } %><%- include('../partials/pager', { p }) %></div>

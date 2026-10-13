@@ -1,0 +1,20 @@
+<div class="page-head"><div><h1>Restock requests</h1><p>Urgent: same day. Normal: next morning (SOP-05).</p></div></div>
+<% if (low.length) { %><div class="callout"><b>Low stock now:</b> <%= low.map(l => `${l.product_name} @ ${l.location_name} (${l.qty})`).join(' · ') %></div><% } %>
+<div class="grid g3">
+  <div class="card"><h3>New request</h3><form method="post" class="form"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div><label>Machine</label><select name="machine_id"><% for (const m of machines) { %><option value="<%= m.id %>"><%= m.code %> — <%= m.site_name %></option><% } %></select></div>
+    <% for (const p of products) { %><div><label><%= p.name %></label><input type="number" min="0" name="qty_<%= p.id %>"></div><% } %>
+    <div class="form-row"><div><label>Priority</label><select name="priority"><option value="normal">Normal</option><option value="urgent">Urgent</option></select></div><div><label>Needed by</label><input type="date" name="needed_by"></div></div>
+    <div><label>Notes</label><input name="notes"></div><button class="btn primary">Request</button></form></div>
+  <div class="card span2 flush">
+  <form class="filterbar" method="get" style="margin:14px 16px;box-shadow:none">
+    <div><label>Status</label><select name="status"><option value="">Any</option><option value="open" <%= selected(f.status, 'open') %>>Open</option><% for (const st of ['requested','approved','dispatched','delivered','cancelled']) { %><option value="<%= st %>" <%= selected(f.status, st) %>><%= titleCase(st) %></option><% } %></select></div>
+    <div><label>Site</label><select name="site"><option value="">All</option><% for (const s of sites) { %><option value="<%= s.id %>" <%= selected(f.site, s.id) %>><%= s.name %></option><% } %></select></div>
+    <div><label>Priority</label><select name="priority"><option value="">Any</option><option value="urgent" <%= selected(f.priority, 'urgent') %>>Urgent</option><option value="normal" <%= selected(f.priority, 'normal') %>>Normal</option></select></div>
+    <div><label>From</label><input type="date" name="from" value="<%= f.from %>"></div><div><label>To</label><input type="date" name="to" value="<%= f.to %>"></div>
+    <div class="fb-actions"><button class="btn primary sm">Filter</button><a class="btn sm" href="/stock/restock">Reset</a></div></form>
+  <div class="table-wrap"><table class="table responsive"><thead><tr><th>Machine</th><th>Items</th><th>Priority</th><th>Requested</th><th>Status</th><th></th></tr></thead><tbody>
+  <% for (const r of rows) { %><tr><td data-label="Machine"><b><%= r.machine_code %></b><div class="small muted"><%= r.site_name %></div></td><td data-label="Items" class="small"><%= JSON.parse(r.items).map(i => `${pmap[i.product_id] || '?'} ×${i.qty}`).join(', ') %></td><td data-label="Priority"><%- badge(r.priority === 'urgent' ? 'urgent' : 'normal', titleCase(r.priority)) %></td><td data-label="Requested" class="small"><%= r.requester %> · <%= ago(r.created_at) %></td><td data-label="Status"><%- badge(r.status) %></td>
+  <td><% if (can('stock.manage') && !['delivered','cancelled'].includes(r.status)) { %><form method="post" action="/stock/restock/<%= r.id %>" style="display:flex;gap:4px;flex-wrap:wrap"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><select name="status" style="width:auto;padding:5px"><option value="approved">Approved</option><option value="dispatched">Dispatched</option><option value="delivered">Delivered</option><option value="cancelled">Cancelled</option></select><label class="check small"><input type="checkbox" name="post_stock" value="1" checked> post load</label><button class="btn sm">Update</button></form><% } %></td></tr><% } %>
+  </tbody></table></div><% if (!rows.length) { %><div class="empty">No requests match.</div><% } %><%- include('../partials/pager', { p }) %></div>
+</div>

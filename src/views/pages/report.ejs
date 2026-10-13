@@ -1,0 +1,36 @@
+<div class="page-head"><div><h1>Report a problem</h1><p>Report problems as soon as you see them. Do not hide mistakes — reporting early is always the right thing.</p></div></div>
+<div class="callout bad"><b>Smoke, burning smell, exposed wires, shock risk, serious leak or someone hurt?</b> Make it safe first: stop sales if safe, keep people away, alert site security. Emergency: Fire 192 · Ambulance 193 · Police 191. Then report here as <b>Critical</b>.</div>
+<div class="grid g3">
+<form method="post" action="/report" enctype="multipart/form-data" class="card span2 form" id="rf">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div><label>What kind of problem?</label>
+    <div class="chips" id="types"><% for (const [k, l] of [['machine','🛠 Machine fault'],['payment','💳 Payment / QR'],['food_safety','🍕 Food safety / quality'],['stock','📦 Stock issue'],['customer','🙋 Customer issue'],['site_safety','⚠️ Site safety'],['security','🔒 Security / tamper'],['other','Other']]) { %>
+      <label class="check badge" style="padding:8px 12px;font-size:14px"><input type="radio" name="type" value="<%= k %>" <%= checked(pre.type ? pre.type === k : k === 'machine') %> required> <%= l %></label><% } %></div></div>
+  <div class="form-row">
+    <div><label>Site</label><select name="site_id"><% for (const s of sites) { %><option value="<%= s.id %>" <%= selected(pre.site, s.id) %>><%= s.name %></option><% } %></select></div>
+    <div><label>Machine</label><select name="machine_id"><option value="">Not machine-specific</option><% for (const m of machines) { %><option value="<%= m.id %>" <%= selected(pre.machine, m.id) %>><%= m.code %> — <%= m.site_name %></option><% } %></select></div>
+  </div>
+  <div><label>How serious?</label>
+    <div class="grid g3" style="gap:8px">
+      <label class="check card" style="padding:10px;border-color:var(--bad)"><input type="radio" name="severity" value="critical"> <span><b style="color:var(--bad)">Critical / safety</b><br><span class="small muted">Danger to people or food safety. Stop sales.</span></span></label>
+      <label class="check card" style="padding:10px"><input type="radio" name="severity" value="major"> <span><b style="color:var(--warn)">Major</b><br><span class="small muted">Can't sell / repeated payment failures.</span></span></label>
+      <label class="check card" style="padding:10px"><input type="radio" name="severity" value="minor" checked> <span><b>Minor</b><br><span class="small muted">Still safe; needs fixing.</span></span></label>
+    </div></div>
+  <div><label>What happened? (short title)</label><input name="title" required placeholder="e.g. Machine shows error E-12 and won't dispense"></div>
+  <div><label>Details</label><textarea name="description" placeholder="Time, what you saw, what the customer said…"></textarea></div>
+  <div class="form-row"><div><label>Error message on screen</label><input name="error_message"></div><div><label>Order ID</label><input name="order_ref"></div><div><label>Payment reference</label><input name="payment_ref"></div></div>
+  <div class="card" style="background:var(--info-bg)" id="payfields">
+    <b class="small">For payment problems (SOP-03)</b>
+    <div class="form-row" style="margin-top:8px"><div><label>Problem</label><select name="payment_kind"><option value="deducted_no_order">Money deducted, no order</option><option value="duplicate">Charged twice</option><option value="wrong_amount">Wrong amount</option><option value="pending">Payment pending</option><option value="provider_down">Provider down</option><option value="unmatched">Other / unmatched</option></select></div>
+      <div><label>Amount (GHS)</label><input type="number" step="0.01" name="amount"></div><div><label>Customer phone — last 4 digits only</label><input name="phone_last4" maxlength="4" inputmode="numeric"></div></div>
+    <p class="small" style="margin:6px 0 0">Never ask for or record a PIN, OTP or full card number. Do not ask the customer to pay again.</p></div>
+  <div><label>Action you have taken</label><input name="action_taken" placeholder="e.g. Paused sales, put up approved notice, called supervisor"></div>
+  <label class="check"><input type="checkbox" name="sales_paused" value="1"> I have paused sales on this machine</label>
+  <div><label>Photo <span class="hint">(only if safe)</span></label><input type="file" name="photo" accept="image/*" capture="environment"></div>
+  <div><button class="btn report-btn lg">Send report</button></div>
+</form>
+<div class="card"><h3>What happens next</h3>
+  <ol class="small"><li>The right people are alerted instantly (Critical alerts also go by SMS/email).</li><li>A manager acknowledges and assigns a technician or owner.</li><li>The incident is tracked until it is fixed and verified.</li><li>If nobody acknowledges in time, it escalates to the Owner automatically.</li></ol>
+  <h4>Response targets</h4><table class="table small"><% for (const [k, v] of Object.entries(SLA)) { %><tr><td><%- badge(k) %></td><td><%= v.label %></td></tr><% } %></table>
+  <p class="small">Customer complaint without a fault? Use <a href="/customers/new">Customer case</a>.</p></div>
+</div>

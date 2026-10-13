@@ -1,0 +1,66 @@
+<% const st = u.status || (u.active ? 'active' : 'inactive'); const days = String(u.work_days || '').split(','); %>
+<div class="page-head"><div style="display:flex;gap:16px;align-items:center"><div class="avatar lg"><%= u.name.split(' ').map(w => w[0]).slice(0,2).join('') %></div><div><h1><%= u.name %></h1><p><%= roleLabel(u.role) %> · <%= u.staff_no %> · <span class="mono"><%= u.username || '—' %></span> · <%= u.email %></p></div></div>
+  <div class="actions"><%- badge(st) %><% if (can('users.manage')) { %><form method="post" action="/users/<%= u.id %>/reset-password" class="inline" data-confirm="Reset this person's password and sign them out?"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn">Reset password</button></form><% } %></div></div>
+<div class="tabs"><a href="#overview" class="active">Overview</a><% if (can('users.manage')) { %><a href="#hr">Profile &amp; HR</a><% } %><% if (can('access.manage') && u.role !== 'owner') { %><a href="#access">Access</a><% } %><a href="#training">Training</a></div>
+
+<section id="overview">
+<div class="kpis">
+  <div class="kpi"><div class="label">Score (30d)</div><div class="value"><%= score && score.score != null ? Math.round(score.score) : '—' %></div></div>
+  <div class="kpi"><div class="label">Attendance (month)</div><div class="value"><%= month.scheduled ? Math.round(month.worked / month.scheduled * 100) + '%' : '—' %></div><div class="sub"><%= month.worked %>/<%= month.scheduled %> days · <%= month.absent %> absent</div></div>
+  <div class="kpi <%= month.late > 30 ? 'warn' : '' %>"><div class="label">Late (month)</div><div class="value"><%= month.late %>m</div></div>
+  <div class="kpi"><div class="label">Overtime (month)</div><div class="value"><%= month.ot %>h</div></div>
+  <div class="kpi"><div class="label">Checklists (30d)</div><div class="value"><%= score ? score.checklists : 0 %></div><div class="sub">avg <%= score && score.avg_score != null ? score.avg_score + '%' : '—' %></div></div>
+</div>
+<div class="card flush"><div class="card-head"><h3>Recent attendance</h3><a class="small" href="/attendance?staff=<%= u.id %>&date_from=<%= addDays(today(), -60) %>#team">Full history with filters →</a></div><div class="table-wrap"><table class="table responsive"><thead><tr><th>Date</th><th>Site</th><th>In – out</th><th>Late</th><th class="num">OT</th><th>Location</th></tr></thead><tbody>
+<% for (const a of attendance) { %><tr><td data-label="Date"><%= fmtDate(a.work_date || a.clock_in) %></td><td data-label="Site"><%= a.site_name || '—' %></td><td data-label="Time" class="mono"><%= fmtTime(a.clock_in) %> – <%= a.clock_out ? fmtTime(a.clock_out) : 'on shift' %></td><td data-label="Late"><%- a.late_minutes ? badge('warn', a.late_minutes + ' min') : badge('ok','On time') %></td><td class="num" data-label="OT"><%= a.overtime_hours || 0 %>h</td><td data-label="Location" class="small"><%= a.in_distance_m != null ? a.in_distance_m + ' m from site' : '—' %></td></tr><% } %></tbody></table></div></div>
+</section>
+
+<% if (can('users.manage')) { %>
+<section id="hr" style="margin-top:18px">
+<form method="post" action="/users/<%= u.id %>" class="grid g2"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="card"><h3>Profile &amp; status</h3><div class="form">
+    <div class="form-row"><div><label>Name</label><input name="name" value="<%= u.name %>"></div><div><label>Username <span class="hint">(sign-in)</span></label><input name="username" value="<%= u.username || '' %>" autocapitalize="none"></div></div>
+    <div class="form-row"><div><label>Phone</label><input name="phone" value="<%= u.phone || '' %>"></div><div><label>Staff no.</label><input name="staff_no" value="<%= u.staff_no || '' %>"></div><div><label>Start date</label><input type="date" name="hired_on" value="<%= u.hired_on || '' %>"></div></div>
+    <div class="form-row"><div><label>Role</label><select name="role" <%= u.id === user.id ? 'disabled' : '' %>><% for (const r of ['sales_rep','stock_staff','supervisor','technician','accounts','ops_manager','owner']) { %><option value="<%= r %>" <%= selected(u.role, r) %>><%= roleLabel(r) %></option><% } %></select></div>
+      <div><label>Status</label><select name="status" <%= u.id === user.id ? 'disabled' : '' %>><option value="active" <%= selected(st, 'active') %>>Active</option><option value="suspended" <%= selected(st, 'suspended') %>>Suspended (read-only)</option><option value="inactive" <%= selected(st, 'inactive') %>>Inactive (left — cannot sign in)</option></select></div></div>
+    <div><label>Emergency contact</label><input name="emergency_contact" value="<%= u.emergency_contact || '' %>"></div>
+    <div><label>Sites</label><div class="chips"><% for (const s of sites) { %><label class="check badge" style="padding:6px 10px"><input type="checkbox" name="sites" value="<%= s.id %>" <%= checked(userSites.includes(s.id)) %>> <%= s.name %></label><% } %></div></div>
+    <label class="check"><input type="checkbox" name="cleared_to_work_alone" value="1" <%= checked(u.cleared_to_work_alone) %>> Cleared to work alone (training + practical passed)</label>
+  </div></div>
+  <div class="stack">
+    <div class="card"><h3>Default work schedule</h3><p class="small muted">Used when no roster shift exists — drives lateness, overtime and absences.</p><div class="form">
+      <div class="chips"><% ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach((d, i) => { %><label class="check badge" style="padding:6px 10px"><input type="checkbox" name="work_days" value="<%= i %>" <%= checked(days.includes(String(i))) %>> <%= d %></label><% }) %></div>
+      <div class="form-row"><div><label>Start</label><input type="time" name="work_start" value="<%= u.work_start || '07:00' %>"></div><div><label>End</label><input type="time" name="work_end" value="<%= u.work_end || '15:00' %>"></div></div></div></div>
+    <div class="card"><h3>Geofence</h3><div class="form">
+      <div><label>Clock-in location rule</label><select name="geofence_mode"><option value="site" <%= selected(u.geofence_mode, 'site') %>>Must be at their site (site radius)</option><option value="custom" <%= selected(u.geofence_mode, 'custom') %>>Custom location for this person</option><option value="exempt" <%= selected(u.geofence_mode, 'exempt') %>>Exempt — mobile role (any location)</option></select></div>
+      <div class="form-row"><div><label>Latitude</label><input name="geo_lat" value="<%= u.geo_lat ?? '' %>" inputmode="decimal"></div><div><label>Longitude</label><input name="geo_lng" value="<%= u.geo_lng ?? '' %>" inputmode="decimal"></div><div><label>Radius (m)</label><input type="number" name="geo_radius_m" value="<%= u.geo_radius_m ?? '' %>"></div></div></div></div>
+    <% if (canComp) { %><div class="card"><h3>Compensation</h3><div class="form">
+      <div class="form-row"><div><label>Pay basis</label><select name="pay_type"><option value="monthly" <%= selected(u.pay_type, 'monthly') %>>Monthly salary</option><option value="daily" <%= selected(u.pay_type, 'daily') %>>Daily rate</option><option value="hourly" <%= selected(u.pay_type, 'hourly') %>>Hourly rate</option></select></div><div><label>Amount (GH₵)</label><input type="number" step="0.01" name="base_salary" value="<%= u.base_salary || 0 %>"></div></div>
+      <div class="form-row"><div><label>Monthly allowances</label><input type="number" step="0.01" name="allowances" value="<%= u.allowances || 0 %>"></div><div><label>Other monthly deductions</label><input type="number" step="0.01" name="other_deductions" value="<%= u.other_deductions || 0 %>"></div></div>
+      <div><label>Paid to (MoMo / bank)</label><input name="bank_details" value="<%= u.bank_details || '' %>"></div>
+      <label class="check"><input type="checkbox" name="ssnit_applies" value="1" <%= checked(u.ssnit_applies) %>> Deduct SSNIT</label></div></div><% } %>
+    <div><button class="btn primary lg">Save profile</button></div>
+  </div>
+</form>
+</section>
+<% } %>
+
+<% if (can('access.manage') && u.role !== 'owner') { %>
+<section id="access" style="margin-top:18px">
+<form method="post" action="/users/<%= u.id %>/permissions" class="card flush"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="card-head"><div><h3>Access for <%= u.name.split(' ')[0] %></h3><p class="small muted" style="margin:4px 0 0">Starts from the <b><%= roleLabel(u.role) %></b> role. Use <b>Grant</b> or <b>Remove</b> to make an exception for this person only.</p></div><button class="btn primary">Save access</button></div>
+  <div class="table-wrap"><table class="table perm-table"><thead><tr><th>Permission</th><th class="center">From role</th><th>This person</th></tr></thead><tbody>
+  <% for (const g of CATALOG) { %><tr><td colspan="3" style="background:var(--line-2)"><b><%= g.module %></b></td></tr>
+    <% for (const [perm, label] of g.perms) { const o = overrides[perm]; const has = roleHas(perm); %><tr><td><%= label %></td><td class="center"><%- has ? '<span style="color:var(--ok)">✓</span>' : '<span class="muted">—</span>' %></td>
+      <td><select name="perm:<%= perm %>" style="width:auto;padding:5px 9px;<%= o === 'grant' ? 'border-color:var(--ok)' : o === 'deny' ? 'border-color:var(--bad)' : '' %>"><option value="">Same as role (<%= has ? 'allowed' : 'no access' %>)</option><option value="grant" <%= selected(o, 'grant') %>>Grant</option><option value="deny" <%= selected(o, 'deny') %>>Remove</option></select></td></tr><% } %>
+  <% } %></tbody></table></div>
+</form>
+</section>
+<% } %>
+
+<section id="training" class="grid g2" style="margin-top:18px">
+  <div class="card"><h3>Training record</h3>
+    <table class="table"><thead><tr><th>Module</th><th>Quiz</th><th>Practical</th></tr></thead><tbody>
+    <% for (const t of training) { %><tr><td><a href="/training/<%= t.code %>"><%= t.title %></a></td><td><%- t.quiz_passed ? badge('ok', t.quiz_score + '%') : t.attempts ? badge('failed', t.quiz_score + '%') : badge('pending','Not taken') %></td><td><%- t.practical_passed ? badge('ok','Passed') : t.practical_passed === 0 ? badge('failed','Retrain') : '—' %></td></tr><% } %></tbody></table></div>
+  <div class="card"><h3>Acknowledgements</h3><% for (const a of acks) { %><div class="row-item"><span class="ico"><%- icon('check') %></span><div class="grow"><b><%= titleCase(a.document) %> v<%= a.version %></b><div class="small muted">signed "<%= a.signature %>" · <%= fmtDate(a.signed_at) %></div></div></div><% } %><% if (!acks.length) { %><p class="small muted">None signed.</p><% } %></div>
+</section>

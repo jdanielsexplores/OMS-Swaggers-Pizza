@@ -1,0 +1,138 @@
+<%
+  const hr = Number(nowTime().slice(0,2));
+  const greet = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
+  const todayShift = shifts.find(s => s.shift_date === today());
+  const done = checklists.filter(c => c.run && c.run.submitted_at).length;
+  const pctDone = checklists.length ? Math.round(done / checklists.length * 100) : 100;
+  const overdue = checklists.filter(c => c.overdue).length;
+  const passed = training.filter(t => t.quiz_passed).length;
+  const attPct = myMonth.scheduled ? Math.round(myMonth.worked / myMonth.scheduled * 100) : null;
+  const pendingAcks = announcements.filter(a => a.requires_ack && !a.acked);
+  const defaultSite = (todayShift && todayShift.site_id) || (sites[0] && sites[0].id);
+%>
+
+<% if (!ackDone) { %><div class="callout" style="margin-top:0"><b>Action needed:</b> read the Operations Playbook v<%= playbookVersion %> and sign your acknowledgement. <a href="/handbook/acknowledge">Sign now →</a></div><% } %>
+<% if (handover) { %><div class="callout info"><b>Handover from <%= handover.from_name %></b> (<%= handover.site_name %>, <%= ago(handover.created_at) %>). <a href="/handover/<%= handover.id %>">Read and acknowledge →</a></div><% } %>
+<% for (const a of pendingAcks) { %>
+  <div class="callout"><b>📣 <%= a.title %></b><br><%= a.body %>
+    <form method="post" action="/announcements/<%= a.id %>/ack" style="margin-top:8px"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn sm primary">I have read this</button></form></div>
+<% } %>
+
+<section class="hero">
+  <div class="shift-card">
+    <div class="eyebrow"><%= fmtDate(today()) %> · Africa/Accra</div>
+    <h1><%= greet %>, <%= user.name.split(' ')[0] %></h1>
+    <div class="clock">Server time <b data-server-now="<%= serverNow %>"><%= nowTime() %></b></div>
+    <div class="meta">
+      <% if (clockedIn) { %>
+        <span class="pill"><%- icon('clock') %>On shift for <span data-since="<%= clockedIn.clock_in %>" data-offset="<%= serverNow - Date.now() %>">—</span></span>
+        <span class="pill"><%- icon('pin') %><%= clockedIn.site_name %></span>
+        <% if (clockedIn.late_minutes) { %><span class="pill" style="background:rgba(252,165,165,.18)">Late by <%= clockedIn.late_minutes %> min</span><% } %>
+      <% } else if (todaySched) { %>
+        <span class="pill"><%- icon('calendar') %>Today <%= todaySched.start %>–<%= todaySched.end %></span>
+        <% if (todayShift) { %><span class="pill"><%- icon('pin') %><%= todayShift.site_name %><%= todayShift.machine_code ? ' · ' + todayShift.machine_code : '' %></span><% } %>
+      <% } else { %>
+        <span class="pill"><%- icon('calendar') %>No shift scheduled today</span>
+      <% } %>
+    </div>
+    <% if (clockedIn) { %>
+      <form method="post" action="/attendance/out" data-geo class="clock-form" data-confirm="Clock out now? Make sure your closing checklist and handover are done.">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="lat"><input type="hidden" name="lng"><input type="hidden" name="accuracy">
+        <% const cs = sites.find(s => s.id === clockedIn.site_id); %><span hidden data-lat="<%= cs && cs.latitude != null ? cs.latitude : '' %>" data-lng="<%= cs ? cs.longitude : '' %>" data-radius="<%= cs ? (cs.geofence_radius_m || rules.defaultRadius) : '' %>"></span>
+        <button class="clock-btn out"><%- icon('logout') %>Clock out</button>
+        <a href="/handover/new" class="btn" style="background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.2);height:52px">Shift handover</a>
+      </form>
+    <% } else if (sites.length) { %>
+      <form method="post" action="/attendance/in" data-geo class="clock-form">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="lat"><input type="hidden" name="lng"><input type="hidden" name="accuracy">
+        <select name="site_id" aria-label="Site"><% for (const s of sites) { %><option value="<%= s.id %>" <%= selected(defaultSite, s.id) %> data-lat="<%= s.latitude ?? '' %>" data-lng="<%= s.longitude ?? '' %>" data-radius="<%= s.geofence_radius_m || rules.defaultRadius %>"><%= s.name %></option><% } %></select>
+        <button class="clock-btn"><%- icon('clock') %>Clock in</button>
+      </form>
+    <% } %>
+    <% if (rules.geofenceMode !== 'off' && user.geofence_mode !== 'exempt' && sites.length) { %><div class="geo-status">📍 Checking your location…</div><% } else if (user.geofence_mode === 'exempt') { %><div class="geo-status good">Mobile role — clock-in allowed from any location.</div><% } %>
+  </div>
+
+  <div class="card" style="display:flex;flex-direction:column;gap:16px">
+    <div class="today-card">
+      <div class="ring" style="--p:<%= pctDone %>"><b><%= pctDone %>%</b></div>
+      <div>
+        <div class="eyebrow">Today's checklists</div>
+        <h3 style="margin:4px 0 2px"><%= done %> of <%= checklists.length %> done</h3>
+        <div class="small <%= overdue ? '' : 'muted' %>" style="<%= overdue ? 'color:var(--bad);font-weight:600' : '' %>"><%= overdue ? overdue + ' overdue — do these first' : 'You are on track.' %></div>
+        <a class="btn sm primary" style="margin-top:10px" href="/checklists">Open checklists</a>
+      </div>
+    </div>
+    <div class="mini-stats">
+      <div><b><%= attPct == null ? '—' : attPct + '%' %></b><span>Attendance this month</span></div>
+      <div><b><%= myMonth.late %>m</b><span>Late this month</span></div>
+      <div><b><%= myMonth.ot %>h</b><span>Overtime</span></div>
+    </div>
+  </div>
+</section>
+
+<div class="quick" style="margin-bottom:18px">
+  <a href="/report"><span class="qi red"><%- icon('alert') %></span>Report a problem<small>Fault, payment, safety</small></a>
+  <a href="/stock/temperature"><span class="qi blue"><%- icon('thermo') %></span>Log temperature<small>3× per day</small></a>
+  <a href="/stock/load"><span class="qi green"><%- icon('box') %></span>Load / waste / count<small>Record as it happens</small></a>
+  <a href="/customers/new"><span class="qi violet"><%- icon('heart') %></span>Customer case<small>Complaint or feedback</small></a>
+  <a href="/handover/new"><span class="qi orange"><%- icon('task') %></span>Shift handover<small>Before you leave</small></a>
+  <a href="/leave"><span class="qi gold"><%- icon('flag') %></span>Leave / late permission<small>Ask in advance</small></a>
+  <a href="/assistant"><span class="qi orange"><%- icon('sparkles') %></span>Ask Swaggers<small>Procedures, instantly</small></a>
+  <% if (can('machine_portal.open')) { %><a href="<%= machinePortalUrl %>" target="_blank" rel="noopener"><span class="qi blue"><%- icon('monitor') %></span>Machine portal<small>Supplier live view ↗</small></a><% } else { %><a href="/training"><span class="qi green"><%- icon('grad') %></span>Training<small><%= passed %>/<%= training.length %> passed</small></a><% } %>
+</div>
+
+<div class="grid g3">
+  <div class="card span2">
+    <div class="card-head"><h3>Checklists for today</h3><span class="badge <%= done === checklists.length ? 'ok' : 'warn' %>"><%= done %>/<%= checklists.length %></span></div>
+    <% if (!checklists.length) { %><div class="empty">No sites assigned to you yet.</div><% } %>
+    <% for (const c of checklists) { const isDone = c.run && c.run.submitted_at; %>
+      <div class="row-item">
+        <span class="ico" style="<%= isDone ? 'background:var(--ok-bg);color:var(--ok)' : c.overdue ? 'background:var(--bad-bg);color:var(--bad)' : '' %>"><%- icon(isDone ? 'check' : 'clock') %></span>
+        <div class="grow"><b><%= c.tpl.name %></b><div class="small muted"><%= c.site.name %><%= c.tpl.due_time ? ' · due ' + c.tpl.due_time : '' %></div></div>
+        <% if (isDone) { %><%- badge(c.run.failed_count ? 'warn' : 'ok', c.run.failed_count ? c.run.failed_count + ' failed' : 'Done ' + fmtTime(c.run.submitted_at)) %>
+        <% } else { %><a class="btn sm <%= c.overdue ? 'primary' : '' %>" href="<%= c.run ? `/checklists/run/${c.run.id}` : `/checklists/start/${c.tpl.id}?site=${c.site.id}` %>"><%= c.run ? 'Continue' : c.overdue ? 'Start now' : 'Start' %></a><% } %>
+      </div>
+    <% } %>
+  </div>
+
+  <div class="stack">
+    <% if (award) { %>
+    <div class="eotm"><div class="trophy">🏆</div><div><div class="eyebrow">Employee of the Month · <%= award.month %></div><b style="font-family:var(--display);font-size:1.1rem"><%= award.name %></b><div class="small muted"><%= roleLabel(award.role) %></div>
+      <a href="/leaderboard" class="small">See leaderboard →</a></div></div>
+    <% } %>
+    <div class="card">
+      <div class="card-head"><h3>My tasks</h3><a href="/tasks" class="small">All</a></div>
+      <% if (!tasks.length) { %><div class="empty" style="padding:14px">No open tasks 🎉</div><% } %>
+      <% for (const t of tasks) { const late = t.due_at && t.due_at < sqlNow(); %>
+        <div class="row-item"><div class="grow"><a href="/tasks/<%= t.id %>"><b><%= t.title %></b></a><div class="small muted"><%= t.site_name || '' %><%= t.due_at ? ' · due ' + fmtDateTime(t.due_at) : '' %></div></div><%- late ? badge('overdue') : badge(t.priority) %></div>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:18px">
+  <div class="card-head"><h3>My machines</h3><div class="actions"><% if (can('machine_portal.open')) { %><a class="btn sm" href="<%= machinePortalUrl %>" target="_blank" rel="noopener"><%- icon('monitor') %>Open machine portal</a><% } %><a class="btn sm" href="/machines">All machines</a></div></div>
+  <div class="machines"><% for (const m of machines) { %><%- include('../partials/machine', { m }) %><% } %></div>
+  <% if (!machines.length) { %><div class="empty">No machines at your sites.</div><% } %>
+</div>
+
+<div class="grid g3" style="margin-top:18px">
+  <div class="card">
+    <div class="card-head"><h3>Open incidents</h3><a class="small" href="/incidents">All</a></div>
+    <% if (!incidents.length) { %><div class="empty" style="padding:14px">No open incidents.</div><% } %>
+    <% for (const i of incidents) { %><div class="row-item"><%- badge(i.severity) %><div class="grow"><a href="/incidents/<%= i.id %>"><b><%= i.title %></b></a><div class="small muted"><%= i.site_name || '' %> · <%= ago(i.created_at) %></div></div></div><% } %>
+  </div>
+  <div class="card">
+    <div class="card-head"><h3>My week</h3><a class="small" href="/roster">Roster</a></div>
+    <% if (!shifts.length) { %><div class="empty" style="padding:14px">No rostered shifts — your default hours apply.</div><% } %>
+    <% for (const s of shifts) { %><div class="row-item"><span class="ico"><%- icon('calendar') %></span><div class="grow"><b><%= fmtDate(s.shift_date, {year:false}) %></b> · <%= s.start_time %>–<%= s.end_time %><div class="small muted"><%= s.site_name %> · <%= titleCase(s.shift_type) %></div></div><%- badge(s.status) %></div><% } %>
+    <% if (payslip) { %><div class="row-item"><span class="ico" style="background:var(--ok-bg);color:var(--ok)"><%- icon('banknote') %></span><div class="grow"><b>Payslip <%= payslip.month %></b><div class="small muted">Net <%= money(payslip.net) %></div></div><a class="btn sm" href="/payroll/slip/<%= payslip.id %>">View</a></div><% } %>
+  </div>
+  <div class="card">
+    <div class="card-head"><h3>Training</h3><a class="small" href="/training">Open</a></div>
+    <div class="progress <%= passed === training.length ? 'ok' : '' %>" style="margin-bottom:10px"><span style="width:<%= training.length ? passed / training.length * 100 : 0 %>%"></span></div>
+    <p class="small muted"><%= passed %> of <%= training.length %> modules · <%= user.cleared_to_work_alone ? 'cleared to work alone ✅' : 'not yet cleared to work alone' %></p>
+    <% for (const t of training.filter(t => !t.quiz_passed).slice(0, 3)) { %><div class="row-item"><span class="ico"><%- icon('grad') %></span><div class="grow"><a href="/training/<%= t.code %>"><%= t.title %></a></div></div><% } %>
+    <% if (announcements.length) { %><hr><div class="eyebrow" style="margin-bottom:6px">Notice board</div><% for (const a of announcements.slice(0, 2)) { %><div class="small" style="margin-bottom:8px"><b><%= a.title %></b><br><span class="muted"><%= a.body.slice(0, 110) %><%= a.body.length > 110 ? '…' : '' %></span></div><% } %><% } %>
+  </div>
+</div>

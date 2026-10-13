@@ -1,0 +1,19 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Swaggers Pizza — Feedback</title><link rel="stylesheet" href="/css/app.css"><meta name="robots" content="noindex"></head>
+<body><div class="auth"><div class="card" style="max-width:480px">
+<div class="brand"><div class="brand-logo">S</div><div><b>SWAGGERS PIZZA</b><span><%= m.site_name || '' %></span></div></div>
+<% if (done) { %>
+  <h2 class="center">Thank you! 🍕</h2><p class="center">We read every message. <% if (typeof ref !== 'undefined' && ref) { %>Your reference is <b><%= ref %></b>.<% } %> If you left contact details, we'll get back to you within 48 hours.</p>
+  <p class="small muted center">We will never ask for your Mobile Money PIN or OTP.</p>
+<% } else { %>
+  <h2 class="center" style="margin-bottom:4px">How was your pizza?</h2><p class="muted center small">Machine <%= m.code %></p>
+  <form method="post" class="form"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="text" name="website" style="display:none" tabindex="-1" autocomplete="off">
+    <div class="seg" style="display:flex;justify-content:center"><% for (let i = 1; i <= 5; i++) { %><input type="radio" id="r<%= i %>" name="rating" value="<%= i %>"><label for="r<%= i %>" class="yes"><%= i %>★</label><% } %></div>
+    <div><label>What's this about?</label><select name="category"><option value="praise">I loved it!</option><option value="quality">Pizza quality</option><option value="payment">I paid but had a problem</option><option value="machine">Machine problem</option><option value="service">Staff / service</option><option value="food_safety">I'm worried about food safety</option><option value="suggestion">Suggestion</option></select></div>
+    <div><label>Which pizza?</label><select name="product_id"><option value="">—</option><% for (const p of products) { %><option value="<%= p.id %>"><%= p.name %></option><% } %></select></div>
+    <div><label>Tell us more</label><textarea name="description" maxlength="2000"></textarea></div>
+    <div><label>Payment reference <span class="hint">(if a payment issue)</span></label><input name="payment_ref" maxlength="40"></div>
+    <div class="form-row"><div><label>Name <span class="hint">(optional)</span></label><input name="name" maxlength="80"></div><div><label>Phone / email <span class="hint">(optional, for a reply)</span></label><input name="contact" maxlength="80"></div></div>
+    <p class="small muted">Never share your PIN, OTP or password. We only use your details to respond to this message.</p>
+    <button class="btn primary lg block">Send</button></form>
+<% } %>
+</div></div></body></html>

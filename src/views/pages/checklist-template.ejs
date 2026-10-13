@@ -1,0 +1,26 @@
+<div class="grid g2">
+<div class="card"><h2><%= t.id ? 'Template settings' : 'New template' %></h2>
+<form method="post" action="/checklists/templates" class="form"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="id" value="<%= t.id || '' %>">
+  <div><label>Name</label><input name="name" value="<%= t.name || '' %>" required></div>
+  <div class="form-row"><div><label>Category</label><select name="category"><% for (const c of ['opening','during','refill','cleaning','closing','weekly','food_safety','site']) { %><option <%= selected(t.category, c) %> value="<%= c %>"><%= titleCase(c) %></option><% } %></select></div>
+    <div><label>Frequency</label><select name="frequency"><% for (const c of ['daily','per_shift','weekly','monthly','ad_hoc']) { %><option <%= selected(t.frequency, c) %> value="<%= c %>"><%= titleCase(c) %></option><% } %></select></div>
+    <div><label>Due by <span class="hint">(daily only)</span></label><input type="time" name="due_time" value="<%= t.due_time || '' %>"></div></div>
+  <div class="form-row"><div><label>Only for site type</label><select name="site_type"><option value="">All sites</option><% for (const c of ['airport','mall','office','school','other']) { %><option <%= selected(t.site_type, c) %> value="<%= c %>"><%= titleCase(c) %></option><% } %></select></div>
+    <div><label>Linked SOP</label><select name="sop_code"><option value="">—</option><% for (const s of sops) { %><option <%= selected(t.sop_code, s.code) %> value="<%= s.code %>"><%= s.code %> <%= s.title %></option><% } %></select></div></div>
+  <div><label>Roles that complete it</label><input name="roles" value="<%= t.roles || '' %>"></div>
+  <div><label>Instructions</label><textarea name="description"><%= t.description || '' %></textarea></div>
+  <% if (t.id) { %><label class="check"><input type="checkbox" name="active" value="1" <%= checked(t.active) %>> Active</label><% } %>
+  <div><button class="btn primary">Save</button></div></form></div>
+<% if (t.id) { %><div class="card"><h2>Items</h2>
+  <% for (const it of items) { %>
+    <form method="post" action="/checklists/items/<%= it.id %>" class="check-item" style="display:grid;gap:6px"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input name="text" value="<%= it.text %>"><input name="guidance" value="<%= it.guidance || '' %>" placeholder="Guidance (optional)">
+      <div class="actions small"><span class="badge"><%= titleCase(it.response_type) %></span><label class="check"><input type="checkbox" name="critical" value="1" <%= checked(it.critical) %>> Critical</label><label class="check"><input type="checkbox" name="requires_photo" value="1" <%= checked(it.requires_photo) %>> Photo</label><button class="btn sm">Save</button>
+      <button class="btn sm ghost" style="color:var(--bad)" formaction="/checklists/items/<%= it.id %>/delete" onclick="return confirm('Remove this item?')">Remove</button></div></form>
+  <% } %>
+  <h4 style="margin-top:16px">Add item</h4>
+  <form method="post" action="/checklists/templates/<%= t.id %>/items" class="form"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <input name="text" placeholder="What must be checked?" required><input name="guidance" placeholder="Guidance (optional)">
+    <div class="actions"><select name="response_type" style="width:auto"><option value="yesno">Yes / No / N/A</option><option value="temperature">Temperature (°C)</option><option value="number">Number</option></select>
+    <label class="check"><input type="checkbox" name="critical" value="1"> Critical (failure raises incident)</label><label class="check"><input type="checkbox" name="requires_photo" value="1"> Requires photo</label><button class="btn primary sm">Add</button></div></form></div><% } %>
+</div>

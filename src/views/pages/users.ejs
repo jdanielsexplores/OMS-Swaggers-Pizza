@@ -1,0 +1,18 @@
+<div class="page-head"><div><h1>Staff</h1><p>Every person has their own account and only sees the sites and functions their role needs.</p></div>
+  <div class="actions"><a class="btn" href="/leave">Leave requests</a><a class="btn primary" href="/users/new"><%- icon('plus') %>Add staff</a></div></div>
+<form class="filterbar" method="get">
+  <div><label>Search</label><input type="search" name="q" value="<%= f.q %>" placeholder="Name, username, staff no., phone"></div>
+  <div><label>Role</label><select name="role"><option value="">Any</option><% for (const r of ['owner','ops_manager','supervisor','sales_rep','stock_staff','technician','accounts']) { %><option value="<%= r %>" <%= selected(f.role, r) %>><%= roleLabel(r) %></option><% } %></select></div>
+  <div><label>Site</label><select name="site"><option value="">Any</option><% for (const s of sites) { %><option value="<%= s.id %>" <%= selected(f.site, s.id) %>><%= s.name %></option><% } %></select></div>
+  <div><label>Status</label><select name="status"><option value="">Any</option><% for (const s of ['active','suspended','inactive']) { %><option value="<%= s %>" <%= selected(f.status, s) %>><%= titleCase(s) %></option><% } %></select></div>
+  <div><label>Cleared alone</label><select name="cleared"><option value="">Any</option><option value="yes" <%= selected(f.cleared, 'yes') %>>Yes</option><option value="no" <%= selected(f.cleared, 'no') %>>Not yet</option></select></div>
+  <div class="fb-actions"><button class="btn primary sm">Filter</button><a class="btn sm" href="/users">Reset</a></div>
+</form>
+<div class="card flush"><div class="table-wrap"><table class="table responsive">
+  <thead><tr><th>Name</th><th>Role</th><th>Sites</th><th>Training</th><th>Cleared alone</th><th>Last sign-in</th><th>Status</th></tr></thead><tbody>
+  <% for (const u of users) { %><tr style="<%= u.active ? '' : 'opacity:.5' %>">
+    <td data-label="Name"><a href="/users/<%= u.id %>"><b><%= u.name %></b></a><div class="small muted"><%= u.staff_no %> · <%= u.email %></div></td>
+    <td data-label="Role"><%= roleLabel(u.role) %></td><td data-label="Sites"><%= u.sites || (['owner','ops_manager','accounts'].includes(u.role) ? 'All' : '—') %></td>
+    <td data-label="Training"><%= u.passed %>/<%= modules %></td><td data-label="Cleared"><%- u.cleared_to_work_alone ? badge('ok','Yes') : badge('pending','No') %></td>
+    <td data-label="Last sign-in" class="small"><%= u.last_login_at ? ago(u.last_login_at) : 'never' %></td><td data-label="Status"><%- badge(u.status || (u.active ? 'active' : 'inactive')) %><%- u.locked_until && u.locked_until > sqlNow() ? ' ' + badge('bad','Locked') : '' %></td></tr>
+  <% } %></tbody></table></div><% if (!users.length) { %><div class="empty">No staff match.</div><% } %><%- include('../partials/pager', { p }) %></div>

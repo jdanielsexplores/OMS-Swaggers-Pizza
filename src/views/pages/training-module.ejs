@@ -1,0 +1,21 @@
+<div class="page-head"><div><span class="sop-code"><%= m.code %></span><h1><%= m.title %></h1><p><%= m.summary %></p></div>
+  <div class="actions"><%- rec && rec.quiz_passed ? badge('ok', 'Quiz passed ' + rec.quiz_score + '%') : '' %><%- rec && rec.practical_passed ? badge('ok','Practical passed') : '' %></div></div>
+<div class="grid g3">
+  <div class="span2 stack">
+    <div class="card prose"><%- md(m.content) %><% if (m.video_url) { %><p><a href="<%= m.video_url %>" target="_blank">▶ Watch the training video</a></p><% } %>
+      <% if (sops.length) { %><hr><b>Read these procedures:</b> <%- sops.map(s => `<a href="/handbook/${s.code}">${s.code} ${esc(s.title)}</a>`).join(' · ') %><% } %></div>
+    <% if (result) { %><div class="card" id="result" style="border-color:<%= result.passed ? 'var(--ok)' : 'var(--bad)' %>"><h3><%= result.passed ? '🎉 Passed' : 'Not yet — try again' %> · <%= result.score %>%</h3>
+      <% result.answers.forEach((a, i) => { const q = qs.find(x => x.id === a.id); %><div style="margin:10px 0"><b><%= i + 1 %>. <%= q.question %></b><div class="small" style="color:<%= a.given === a.correct ? 'var(--ok)' : 'var(--bad)' %>"><%= a.given === a.correct ? '✓ Correct' : '✗ Correct answer: ' + q.options[a.correct] %> — <%= a.explanation %></div></div><% }) %></div><% } %>
+    <% if (qs.length) { %><div class="card"><h3>Quiz</h3><p class="small muted">Pass mark <%= m.pass_mark %>%. You can retake it as many times as you need.</p>
+      <form method="post" action="/training/<%= m.code %>/quiz" class="form"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <% qs.forEach((q, i) => { %><div class="check-item"><div class="q"><%= i + 1 %>. <%= q.question %></div><% q.options.forEach((o, j) => { %><label class="check" style="margin-top:6px;font-weight:500"><input type="radio" name="q_<%= q.id %>" value="<%= j %>" required> <%= o %></label><% }) %></div><% }) %>
+      <button class="btn primary lg">Submit answers</button></form></div><% } %>
+  </div>
+  <div class="stack">
+    <div class="card"><h3>Your record</h3><dl class="dl"><dt>Quiz</dt><dd><%= rec && rec.attempts ? rec.quiz_score + '% (' + rec.attempts + ' attempt' + (rec.attempts > 1 ? 's' : '') + ')' : 'Not taken' %></dd><dt>Practical</dt><dd><%= !m.practical_required ? 'Not required' : rec && rec.practical_passed ? 'Passed ' + fmtDate(rec.practical_at) : rec && rec.practical_passed === 0 ? 'Retrain by ' + fmtDate(rec.retrain_due) : 'Ask your Supervisor to assess you' %></dd><% if (rec && rec.practical_notes) { %><dt>Assessor notes</dt><dd><%= rec.practical_notes %></dd><% } %></dl></div>
+    <% if (trainees.length) { %><div class="card"><h3>Record a practical test</h3><form method="post" action="/training/<%= m.code %>/practical" class="form"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <select name="user_id"><% for (const t of trainees) { if (t.id === user.id) continue; %><option value="<%= t.id %>"><%= t.name %> <%= t.practical_passed ? '(passed)' : t.quiz_passed ? '(quiz ✓)' : '(quiz not passed)' %></option><% } %></select>
+      <select name="result"><option value="pass">Passed — can do this independently</option><option value="fail">Not yet — retrain</option></select>
+      <input type="date" name="retrain_due" title="Retrain by (if not passed)"><textarea name="notes" placeholder="What did you observe?"></textarea><button class="btn primary">Save result</button></form></div><% } %>
+  </div>
+</div>

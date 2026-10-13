@@ -1,0 +1,50 @@
+<% const open = !['resolved','closed'].includes(inc.status); const late = open && inc.due_at && inc.due_at < sqlNow(); %>
+<div class="page-head"><div><h1><%= inc.title %></h1><p><%= inc.ref %> · <%= titleCase(inc.type) %> · reported by <%= inc.reporter || 'system' %> <%= ago(inc.created_at) %> via <%= inc.source %></p></div>
+  <div class="actions"><%- badge(inc.severity) %><%- badge(inc.status) %><%- late ? badge('overdue') : '' %><%- inc.escalation_level ? badge('bad', 'Escalated L' + inc.escalation_level) : '' %></div></div>
+<% if (inc.sales_paused && open) { %><div class="callout bad">⛔ <b>Sales paused</b> on <%= inc.machine_code %>. Return to service only after the authorised person confirms it is safe and tests pass.</div><% } %>
+<div class="grid g3">
+  <div class="span2 stack">
+    <div class="card"><dl class="dl">
+      <dt>Site</dt><dd><%= inc.site_name || '—' %></dd><dt>Machine</dt><dd><% if (inc.machine_id) { %><a href="/machines/<%= inc.machine_id %>"><%= inc.machine_code %></a> <%- badge(inc.machine_status) %><% } else { %>—<% } %></dd>
+      <% if (inc.description) { %><dt>Details</dt><dd style="white-space:pre-wrap"><%= inc.description %></dd><% } %>
+      <% if (inc.error_message) { %><dt>Error</dt><dd><code><%= inc.error_message %></code></dd><% } %>
+      <% if (inc.order_ref || inc.payment_ref) { %><dt>Order / payment</dt><dd><%= inc.order_ref || '—' %> / <%= inc.payment_ref || '—' %></dd><% } %>
+      <% if (inc.action_taken) { %><dt>Action taken</dt><dd><%= inc.action_taken %></dd><% } %>
+      <dt>Response target</dt><dd><%= sla.label %> · due <%= fmtDateTime(inc.due_at) %></dd>
+      <dt>Acknowledged</dt><dd><%= inc.acknowledged_at ? fmtDateTime(inc.acknowledged_at) + ' (' + duration((parseSql(inc.acknowledged_at) - parseSql(inc.created_at)) / 60000) + ')' : '—' %></dd>
+      <dt>Assigned to</dt><dd><%= inc.assignee || '—' %><%= inc.vendor_name ? ' / ' + inc.vendor_name + ' ' + (inc.vendor_phone || '') : '' %></dd>
+      <% if (inc.resolved_at) { %><dt>Resolved</dt><dd><%= fmtDateTime(inc.resolved_at) %> · downtime <%= duration(inc.downtime_minutes) %></dd><dt>Root cause</dt><dd><%= inc.root_cause || '—' %></dd><dt>Resolution</dt><dd><%= inc.resolution || '—' %></dd><dt>Cost</dt><dd><%= money(inc.cost) %></dd><% } %>
+    </dl></div>
+    <div class="card"><h3>Timeline</h3>
+      <ul class="timeline"><% for (const u of updates) { %><li class="<%= u.kind %>"><div class="small muted"><%= fmtDateTime(u.created_at) %> · <%= u.name || 'System' %></div><div style="white-space:pre-wrap"><%= u.body %></div><% if (u.attachment) { %><a href="/uploads/<%= u.attachment %>" target="_blank"><img src="/uploads/<%= u.attachment %>" style="max-width:220px;border-radius:8px;margin-top:6px" alt="attachment"></a><% } %></li><% } %></ul>
+      <form method="post" action="/incidents/<%= inc.id %>/comment" enctype="multipart/form-data" class="form"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><textarea name="body" placeholder="Add an update…" style="min-height:70px"></textarea><div class="actions"><input type="file" name="photo" accept="image/*"><button class="btn">Post update</button></div></form>
+    </div>
+  </div>
+  <div class="stack">
+    <% if (open && canManage) { %>
+    <div class="card"><h3>Manage</h3>
+      <% if (inc.status === 'open') { %><form method="post" action="/incidents/<%= inc.id %>/ack"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn primary block">Acknowledge</button></form><hr><% } %>
+      <form method="post" action="/incidents/<%= inc.id %>/assign" class="form"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div><label>Assign to</label><select name="assigned_to"><option value="">—</option><% for (const s of staff) { %><option value="<%= s.id %>" <%= selected(inc.assigned_to, s.id) %>><%= s.name %> (<%= roleLabel(s.role) %>)</option><% } %></select></div>
+        <div><label>External vendor / technician</label><select name="vendor_id"><option value="">—</option><% for (const v of vendors) { %><option value="<%= v.id %>" <%= selected(inc.vendor_id, v.id) %>><%= v.name %></option><% } %></select></div>
+        <div><label>Severity</label><select name="severity"><% for (const s of ['critical','major','minor']) { %><option <%= selected(inc.severity, s) %>><%= s %></option><% } %></select></div>
+        <button class="btn">Save assignment</button></form>
+    </div><% } %>
+    <% if (open && (canManage || inc.assigned_to === user.id)) { %>
+    <div class="card"><h3>Progress</h3>
+      <form method="post" action="/incidents/<%= inc.id %>/status" class="form"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="status" value="in_progress"><button class="btn block" <%= inc.status === 'in_progress' ? 'disabled' : '' %>>Mark in progress</button></form>
+      <hr><h4>Resolve</h4>
+      <form method="post" action="/incidents/<%= inc.id %>/status" class="form"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="status" value="resolved">
+        <textarea name="root_cause" placeholder="Root cause" style="min-height:60px"></textarea><textarea name="resolution" placeholder="What was done to fix it" style="min-height:60px"></textarea>
+        <div><label>Cost (GHS)</label><input type="number" step="0.01" name="cost" value="0"></div>
+        <% if (inc.machine_id) { %><label class="check"><input type="checkbox" name="return_to_service_checked" value="1"> Return-to-service safety & function tests passed</label><% } %>
+        <button class="btn ok block">Mark resolved</button></form>
+    </div><% } %>
+    <% if (inc.status === 'resolved' && canClose) { %><div class="card"><h3>Verify & close</h3><p class="small">Check the fix with the site team, then close.</p>
+      <form method="post" action="/incidents/<%= inc.id %>/status" class="form"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input name="note" placeholder="Verification note"><div class="actions"><button class="btn ok" name="status" value="closed">Close</button><button class="btn" name="status" value="in_progress">Reopen</button></div></form></div><% } %>
+    <div class="card"><h3>Corrective actions</h3>
+      <ul class="list"><% for (const t of tasks) { %><li><div class="grow"><a href="/tasks/<%= t.id %>"><%= t.title %></a><div class="small muted"><%= t.assignee || '' %></div></div><%- badge(t.status) %></li><% } %></ul>
+      <% if (can('tasks.assign')) { %><details><summary class="small">+ Add corrective action</summary><form method="post" action="/incidents/<%= inc.id %>/task" class="form" style="margin-top:8px"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input name="title" required placeholder="Action"><select name="assigned_to"><% for (const s of staff) { %><option value="<%= s.id %>"><%= s.name %></option><% } %></select><input type="datetime-local" name="due_at"><button class="btn sm">Create</button></form></details><% } %></div>
+    <% if (related.length) { %><div class="card" style="border-color:var(--warn)"><h3>Same machine, last 30 days</h3><ul class="list"><% for (const x of related) { %><li><div class="grow small"><a href="/incidents/<%= x.id %>"><%= x.title %></a><div class="muted"><%= fmtDate(x.created_at) %></div></div><%- badge(x.status) %></li><% } %></ul><% if (related.length >= 2) { %><p class="small" style="color:var(--warn)">Repeat fault — consider a root-cause review with the supplier (SOP-16).</p><% } %></div><% } %>
+  </div>
+</div>

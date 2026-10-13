@@ -1,0 +1,16 @@
+<div class="page-head"><div><h1>Notifications</h1><p>Alerts, escalations and updates sent to you.</p></div>
+  <form method="post" action="/notifications/read"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn">Mark all read</button></form></div>
+<form class="filterbar" method="get">
+  <div><label>Search</label><input type="search" name="q" value="<%= f.q %>"></div>
+  <div><label>Level</label><select name="level"><option value="">Any</option><% for (const l of ['critical','warning','info','success']) { %><option value="<%= l %>" <%= selected(f.level, l) %>><%= titleCase(l) %></option><% } %></select></div>
+  <div><label>Show</label><select name="unread"><option value="">All</option><option value="1" <%= selected(f.unread, '1') %>>Unread only</option></select></div>
+  <div><label>From</label><input type="date" name="from" value="<%= f.from %>"></div><div><label>To</label><input type="date" name="to" value="<%= f.to %>"></div>
+  <div class="fb-actions"><button class="btn primary sm">Filter</button><a class="btn sm" href="/notifications">Reset</a></div>
+</form>
+<div class="card">
+  <% if (!items.length) { %><div class="empty">Nothing here.</div><% } %>
+  <ul class="list"><% for (const n of items) { %>
+    <li style="<%= n.read_at ? 'opacity:.65' : '' %>"><%- badge(n.level) %><div class="grow"><a href="/notifications/<%= n.id %>"><b><%= n.title %></b></a><% if (n.body) { %><div class="small" style="white-space:pre-wrap"><%= n.body %></div><% } %><div class="small muted"><%= fmtDateTime(n.created_at) %></div></div><% if (!n.read_at) { %><span class="status-dot offline" style="animation:none"></span><% } %></li>
+  <% } %></ul>
+  <%- include('../partials/pager', { p }) %>
+</div>

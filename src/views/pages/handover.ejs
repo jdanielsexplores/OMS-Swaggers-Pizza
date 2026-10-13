@@ -1,0 +1,4 @@
+<div class="card" style="max-width:820px"><div class="card-head"><h2>Handover — <%= h.site_name %></h2><%- h.acknowledged_at ? badge('ok','Acknowledged') : badge('pending') %></div>
+  <p class="muted">From <b><%= h.from_name %></b> to <b><%= h.to_name || 'next shift' %></b> · <%= fmtDateTime(h.created_at) %></p>
+  <% for (const [k, l] of [['stock_summary','Stock'],['open_issues','Open issues'],['cash_payment_notes','Payment issues'],['notes','Notes / first actions']]) { %><h4><%= l %></h4><p style="white-space:pre-wrap"><%= h[k] || '—' %></p><% } %>
+  <% if (!h.acknowledged_at && h.from_user_id !== user.id) { %><form method="post" action="/handover/<%= h.id %>/ack"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn primary">I have read this handover</button></form><% } %></div>

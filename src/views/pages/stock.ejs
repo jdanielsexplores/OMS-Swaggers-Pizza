@@ -1,0 +1,27 @@
+<% const wasteUnits = waste.reduce((a, w) => a + w.units, 0); %>
+<div class="page-head"><div><h1>Stock & Food Safety</h1><p>Every unit is traceable from delivery to sale or waste (FEFO: First Expiry, First Out).</p></div>
+  <div class="actions"><% if (can('stock.manage')) { %><a class="btn" href="/stock/receive">Receive delivery</a><% } %><a class="btn primary" href="/stock/load">Load machine</a><a class="btn" href="/stock/waste">Record waste</a><a class="btn" href="/stock/count">Count</a><a class="btn" href="/stock/temperature"><%- icon('thermo') %>Temperatures</a></div></div>
+<div class="kpis">
+  <div class="kpi <%= low.length ? 'warn' : 'ok' %>"><div class="label">Low / out of stock</div><div class="value"><%= low.length %></div><div class="sub">machine × flavour</div><a class="cover" href="/stock/restock"></a></div>
+  <div class="kpi <%= expiring.length ? 'warn' : '' %>"><div class="label">Expiring ≤ 72h</div><div class="value"><%= expiring.length %></div><div class="sub">batches with stock</div><a class="cover" href="/stock/batches"></a></div>
+  <div class="kpi <%= held.length ? 'bad' : '' %>"><div class="label">On hold / recalled</div><div class="value"><%= held.length %></div><a class="cover" href="/stock/batches"></a></div>
+  <div class="kpi <%= soldWeek && wasteUnits / soldWeek > 0.05 ? 'bad' : '' %>"><div class="label">Waste (7 days)</div><div class="value"><%= num(wasteUnits) %></div><div class="sub"><%= pct(soldWeek ? wasteUnits / soldWeek * 100 : null, 1) %> of units sold (target &lt; 5%)</div><a class="cover" href="/stock/movements?kind=waste"></a></div>
+  <div class="kpi"><div class="label">Restock open</div><div class="value"><%= restock %></div><a class="cover" href="/stock/restock"></a></div>
+</div>
+<% if (held.length) { %><div class="callout bad"><b>Do not sell:</b> <%= held.map(h => `${h.product_name} batch ${h.batch_no} (${h.status.replace('_',' ')})`).join(' · ') %></div><% } %>
+<div class="card flush"><div class="card-head"><h3>Stock on hand</h3><a class="small" href="/stock/movements">Full ledger →</a></div>
+<div class="table-wrap"><table class="table responsive"><thead><tr><th>Location</th><% for (const p of products) { %><th class="num"><%= p.name %></th><% } %><th class="num">Total</th><th></th></tr></thead><tbody>
+<% for (const l of locs) { const rows = bal.filter(b => b.location_id === l.id); const tot = rows.reduce((a, b) => a + b.qty, 0); %>
+<tr><td data-label="Location"><b><%= l.name %></b><div class="small muted"><%= titleCase(l.kind) %></div></td>
+<% for (const p of products) { const b = rows.find(x => x.product_id === p.id) || { qty: 0 }; const lowq = l.kind === 'machine' && b.qty <= p.reorder_level; %><td class="num" data-label="<%= p.name %>" style="<%= lowq ? 'color:var(--bad);font-weight:700' : '' %>"><%= num(b.qty) %></td><% } %>
+<td class="num" data-label="Total"><b><%= num(tot) %></b></td><td class="right"><a class="btn sm ghost" href="/stock/count?location=<%= l.id %>">Count</a></td></tr><% } %>
+</tbody></table></div></div>
+<div class="grid g3" style="margin-top:16px">
+  <div class="card"><h3>Expiring soon</h3><% if (!expiring.length) { %><div class="empty">Nothing expiring in 72h.</div><% } %>
+    <ul class="list"><% for (const b of expiring) { %><li><div class="grow"><a href="/stock/batches/<%= b.id %>"><b><%= b.product_name %></b> · <%= b.batch_no %></a><div class="small muted">expires <%= fmtDateTime(b.expires_at) %></div></div></li><% } %></ul></div>
+  <div class="card"><h3>Waste by reason (7d)</h3><% if (!waste.length) { %><div class="empty">No waste recorded.</div><% } %>
+    <table class="table"><% for (const w of waste) { %><tr><td><%= titleCase(w.reason) %></td><td class="num"><%= num(w.units) %></td><td class="num"><%= money(w.cost, 0) %></td></tr><% } %></table></div>
+  <div class="card"><h3>Latest temperatures</h3>
+    <ul class="list"><% for (const t of temps) { %><li><span class="badge <%= t.in_range ? 'ok' : 'bad' %>"><%= t.reading %>°C</span><div class="grow small"><%= t.site_name %> · <%= t.location_label %><div class="muted"><%= t.user_name %> · <%= ago(t.recorded_at) %></div></div></li><% } %></ul><a class="btn sm" href="/stock/temperature">Log temperature</a></div>
+</div>
+<div class="actions" style="margin-top:16px"><a class="btn" href="/stock/batches">Batches & recalls</a><a class="btn" href="/stock/restock">Restock requests</a><a class="btn" href="/stock/movements">Ledger</a><% if (can('products.manage')) { %><a class="btn" href="/admin/products">Menu & prices</a><% } %></div>

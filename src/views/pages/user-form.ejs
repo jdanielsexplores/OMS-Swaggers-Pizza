@@ -1,0 +1,8 @@
+<div class="card" style="max-width:760px"><h2>Add a staff member</h2>
+<form method="post" action="/users" class="form"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="form-row"><div><label>Full name</label><input name="name" required></div><div><label>Email (used to sign in)</label><input type="email" name="email" required></div></div>
+  <div class="form-row"><div><label>Phone</label><input type="tel" name="phone"></div><div><label>Staff number <span class="hint">(optional)</span></label><input name="staff_no"></div><div><label>Start date</label><input type="date" name="hired_on" value="<%= today() %>"></div></div>
+  <div><label>Role</label><select name="role"><% for (const [k, v] of Object.entries({ sales_rep: 'Sales Rep / Customer Helper', stock_staff: 'Operations / Stock Staff', supervisor: 'Site Supervisor / Shift Lead', technician: 'Approved Technician', accounts: 'Customer Support / Accounts', ops_manager: 'Operations Manager' })) { %><option value="<%= k %>" <%= selected(u.role, k) %>><%= v %></option><% } %></select></div>
+  <div><label>Sites</label><div class="chips"><% for (const s of sites) { %><label class="check badge" style="padding:6px 10px"><input type="checkbox" name="sites" value="<%= s.id %>"> <%= s.name %></label><% } %></div></div>
+  <div class="callout info">A temporary password is generated. The person must change it on first sign-in. New staff are <b>not cleared to work alone</b> until they pass training and a practical sign-off.</div>
+  <div><button class="btn primary">Create account</button></div></form></div>

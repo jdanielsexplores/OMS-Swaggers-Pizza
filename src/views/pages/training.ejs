@@ -1,0 +1,11 @@
+<% const req = modules.filter(m => m.required); const done = req.filter(m => m.quiz_passed && (!m.practical_required || m.practical_passed)).length; %>
+<div class="page-head"><div><h1>Training</h1><p>Complete every module and a practical test with your Supervisor before working alone (Playbook section 7).</p></div>
+  <div class="actions"><% if (can('training.assess')) { %><a class="btn" href="/training/matrix">Training matrix</a><% } %></div></div>
+<div class="card" style="margin-bottom:16px"><div style="display:flex;justify-content:space-between"><b>Your progress</b><span><%= done %>/<%= req.length %> required modules complete · <%= user.cleared_to_work_alone ? '✅ cleared to work alone' : 'not yet cleared to work alone' %></span></div><div class="progress ok" style="margin-top:8px"><span style="width:<%= req.length ? done / req.length * 100 : 0 %>%"></span></div></div>
+<div class="grid g3"><% for (const m of modules) { %>
+  <a class="card sop-card" href="/training/<%= m.code %>" style="<%= m.required ? '' : 'opacity:.7' %>">
+    <div style="display:flex;justify-content:space-between"><span class="sop-code"><%= m.code %></span><%- m.quiz_passed ? badge('ok', 'Quiz ' + m.quiz_score + '%') : m.attempts ? badge('failed', 'Retry quiz') : badge('pending', m.required ? 'Required' : 'Optional') %></div>
+    <h3 style="margin:6px 0 4px"><%= m.title %></h3><p class="small muted"><%= m.summary %></p>
+    <div class="small"><%= m.questions %> quiz questions · pass mark <%= m.pass_mark %>%<%= m.practical_required ? ' · practical sign-off' : '' %></div>
+    <% if (m.practical_required) { %><div class="small" style="margin-top:6px">Practical: <%- m.practical_passed ? badge('ok','Passed') : m.practical_passed === 0 ? badge('failed','Retrain') : badge('pending','Awaiting assessor') %></div><% } %>
+  </a><% } %></div>

@@ -1,0 +1,65 @@
+<%- CHART_JS %>
+<div class="page-head"><div><h1><span class="status-dot <%= m.status %>"></span> <%= m.code %></h1><p><a href="/sites/<%= m.site_id %>"><%= m.site_name %></a> · Device <b class="mono"><%= m.supplier_device_no || '—' %></b> · <%= m.model || 'Model TBC' %> · SN <%= m.serial_no || '—' %></p></div>
+  <div class="actions"><%- badge(m.status) %><% if (can('machine_portal.open')) { %><a class="btn" href="<%= machinePortalUrl %>" target="_blank" rel="noopener"><%- icon('monitor') %>Machine portal ↗</a><% } %><% if (can('sales.record')) { %><a class="btn" href="/sales/cashup?machine=<%= m.id %>">Cash-up</a><% } %><a class="btn report-btn" href="/report?machine=<%= m.id %>">Report fault</a><a class="btn" href="/stock/load?machine=<%= m.id %>">Load stock</a><a class="btn" href="/machines/<%= m.id %>/poster" target="_blank"><%- icon('qr') %>Feedback QR poster</a></div></div>
+<% if (m.status !== 'online') { %><div class="callout bad"><b><%= titleCase(m.status) %>:</b> <%= m.status_reason || '' %> (since <%= fmtDateTime(m.status_changed_at) %>)</div><% } %>
+<div class="kpis">
+  <div class="kpi"><div class="label">Uptime (30d)</div><div class="value"><%= pct(uptime && uptime.uptime, 1) %></div><div class="sub"><%= duration(uptime && uptime.down_mins) %> down</div></div>
+  <div class="kpi <%= uptime && uptime.faults_30d >= 3 ? 'bad' : '' %>"><div class="label">Faults (30d)</div><div class="value"><%= uptime ? uptime.faults_30d : 0 %></div></div>
+  <div class="kpi"><div class="label">Revenue (30d)</div><div class="value"><%= money(byDay.reduce((a, d) => a + d.revenue, 0), 0) %></div></div>
+  <div class="kpi <%= nextService && nextService <= today() ? 'warn' : '' %>"><div class="label">Next service</div><div class="value" style="font-size:1.2rem"><%= fmtDate(nextService) %></div><div class="sub">every <%= m.service_interval_days %> days</div></div>
+</div>
+<div class="grid g3">
+  <div class="card span2"><h3>Daily sales</h3><%- chart({ type: 'bar', data: { labels: byDay.map(t => fmtDate(t.day, {year:false})), datasets: [{ data: byDay.map(t => t.units), backgroundColor: '#d9480f', borderRadius: 5, label: 'Pizzas' }] } }) %></div>
+  <div class="card"><h3>Stock in machine</h3>
+    <table class="table"><% for (const s of stock) { %><tr><td><span class="status-dot" style="background:<%= s.colour %>"></span> <%= s.product_name %></td><td class="num" style="<%= s.qty <= s.reorder_level ? 'color:var(--bad);font-weight:700' : '' %>"><%= num(s.qty) %></td></tr><% } %></table>
+    <div class="actions" style="margin-top:10px"><a class="btn sm" href="/stock/load?machine=<%= m.id %>">Load</a><a class="btn sm" href="/stock/waste?location=<%= loc.id %>">Waste</a><a class="btn sm" href="/stock/count?location=<%= loc.id %>">Count</a></div></div>
+</div>
+<div class="grid g2" style="margin-top:16px">
+  <div class="card">
+    <h3>Change status</h3>
+    <% if (can('machines.manage') || can('incidents.manage')) { %>
+    <form method="post" action="/machines/<%= m.id %>/status" class="form"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="form-row"><div><label>New status</label><select name="status"><% for (const s of ['online','degraded','offline','maintenance','decommissioned']) { %><option <%= selected(m.status, s) %> value="<%= s %>"><%= titleCase(s) %></option><% } %></select></div><div><label>Reason</label><input name="reason"></div></div>
+      <label class="check"><input type="checkbox" name="tests_passed" value="1"> Return-to-service checks passed (required for Online)</label>
+      <div><button class="btn">Update status</button></div></form>
+    <% } else { %><p class="muted">Only managers and technicians can change machine status. Use <a href="/report?machine=<%= m.id %>">Report a problem</a>.</p><% } %>
+    <h4 style="margin-top:18px">Status history</h4>
+    <ul class="list"><% for (const l of statusLog) { %><li><%- badge(l.status) %><div class="grow small"><%= l.reason || '' %><div class="muted"><%= fmtDateTime(l.started_at) %> → <%= l.ended_at ? fmtDateTime(l.ended_at) : 'now' %> <%= l.user_name ? '· ' + l.user_name : '' %></div></div></li><% } %></ul>
+  </div>
+  <div class="card">
+    <div class="card-head"><h3>Incidents</h3><a class="small" href="/incidents?machine=<%= m.id %>&status=all">All <%= incidentCount %> →</a></div>
+    <ul class="list"><% for (const i of incidents) { %><li><%- badge(i.severity) %><div class="grow"><a href="/incidents/<%= i.id %>"><%= i.title %></a><div class="small muted"><%= i.ref %> · <%= fmtDateTime(i.created_at) %> <%= i.downtime_minutes ? '· down ' + duration(i.downtime_minutes) : '' %></div></div><%- badge(i.status) %></li><% } %></ul>
+    <% if (!incidents.length) { %><div class="empty">No incidents recorded.</div><% } %>
+    <h4 style="margin-top:16px">Recent temperatures</h4>
+    <div class="chips"><% for (const t of temps) { %><span class="badge <%= t.in_range ? 'ok' : 'bad' %>"><%= t.reading %>°C · <%= fmtDateTime(t.recorded_at) %></span><% } %></div>
+  </div>
+</div>
+<div class="card" style="margin-top:16px" id="maint">
+  <div class="card-head"><h3>Maintenance log</h3></div>
+  <% if (can('machines.manage')) { %>
+  <details style="margin-bottom:14px"><summary class="btn sm">+ Log maintenance / service</summary>
+    <form method="post" action="/machines/<%= m.id %>/maintenance" class="form" style="margin-top:12px"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="form-row"><div><label>Type</label><select name="kind"><option value="preventive">Preventive service</option><option value="corrective">Corrective repair</option><option value="inspection">Inspection</option><option value="calibration">Calibration</option></select></div>
+        <div><label>Date</label><input type="date" name="performed_on" value="<%= today() %>"></div>
+        <div><label>Vendor</label><select name="vendor_id"><option value="">In-house</option><% for (const v of vendors) { %><option value="<%= v.id %>"><%= v.name %></option><% } %></select></div>
+        <div><label>Cost (GHS)</label><input type="number" step="0.01" name="cost" value="0"></div></div>
+      <div class="form-row"><div><label>Findings</label><textarea name="findings"></textarea></div><div><label>Work done</label><textarea name="work_done"></textarea></div></div>
+      <div class="form-row"><div><label>Parts used</label><input name="parts_used"></div><div><label>Next due</label><input type="date" name="next_due_on"></div></div>
+      <label class="check"><input type="checkbox" name="tests_passed" value="1" checked> Required safety/function tests passed</label>
+      <div><button class="btn primary">Save log</button></div></form></details>
+  <% } %>
+  <div class="table-wrap"><table class="table responsive"><thead><tr><th>Date</th><th>Type</th><th>Work</th><th>By</th><th class="num">Cost</th><th>Tests</th></tr></thead><tbody>
+  <% for (const l of mp.rows) { %><tr><td data-label="Date"><%= fmtDate(l.performed_on) %></td><td data-label="Type"><%= titleCase(l.kind) %></td><td data-label="Work"><%= l.work_done || l.findings || '' %><div class="small muted"><%= l.parts_used || '' %></div></td><td data-label="By"><%= l.vendor_name || l.by_name %></td><td class="num" data-label="Cost"><%= money(l.cost) %></td><td data-label="Tests"><%- l.tests_passed ? badge('ok','Passed') : badge('failed') %></td></tr><% } %>
+  </tbody></table></div><% if (!mp.rows.length) { %><div class="empty">No maintenance recorded yet.</div><% } %><%- include('../partials/pager', { p: mp, hash: 'maint' }) %>
+</div>
+<% if (can('sites.manage')) { %>
+<div class="grid g2" style="margin-top:16px">
+  <div class="card"><h3>Machine details</h3><form method="post" action="/machines/<%= m.id %>/edit" class="form"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><%- include('../partials/machine-fields', { m, sites, isNew: false }) %><div><button class="btn">Save</button></div></form></div>
+  <div class="card"><h3>Integration & customer feedback</h3>
+    <p class="small">Live sales, faults and remote settings are in the <b>supplier's machine portal</b> (device <span class="mono"><%= m.supplier_device_no || '—' %></span>). If the supplier ever offers a data feed, it can post to <code>/api/v1/machine/*</code> with this key (optional).</p>
+    <% if (can('settings.manage')) { %><div class="small" style="word-break:break-all"><b>API key:</b> <code><%= m.api_key %></code></div>
+    <form method="post" action="/machines/<%= m.id %>/rotate-key" data-confirm="Generate a new key? The old key stops working immediately." style="margin-top:8px"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn sm">Rotate key</button></form><% } else { %><p class="small muted">API key visible to the Owner only.</p><% } %>
+    <div class="small" style="margin-top:8px"><b>Last heartbeat:</b> <%= m.last_heartbeat ? fmtDateTime(m.last_heartbeat) + ' (' + ago(m.last_heartbeat) + ')' : 'never' %></div>
+    <hr><p class="small"><b>Customer feedback link:</b> <a href="<%= feedbackUrl %>" target="_blank"><%= feedbackUrl %></a><br>Print the <a href="/machines/<%= m.id %>/poster" target="_blank">QR poster</a> and stick it on the machine.</p></div>
+</div>
+<% } %>

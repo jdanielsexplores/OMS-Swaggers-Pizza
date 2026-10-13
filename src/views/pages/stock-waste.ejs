@@ -1,0 +1,10 @@
+<div class="grid g2">
+<div class="card"><h2>Record waste (SOP-12)</h2>
+<form method="post" class="form"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div><label>Location</label><select name="location_id"><% for (const l of locs) { %><option value="<%= l.id %>" <%= selected(locId, l.id) %>><%= l.name %></option><% } %></select></div>
+  <div class="form-row"><div><label>Product</label><select name="product_id"><% for (const p of products) { %><option value="<%= p.id %>"><%= p.name %></option><% } %></select></div><div><label>Quantity</label><input type="number" min="1" name="qty" required></div></div>
+  <div><label>Reason</label><select name="reason"><option value="expired">Expired</option><option value="damaged">Damaged packaging / product</option><option value="machine_fault">Machine fault (failed cook/dispense)</option><option value="quality_reject">Quality reject</option><option value="temperature">Temperature breach</option><option value="recall">Recall / hold</option><option value="other">Other</option></select></div>
+  <div><label>Notes</label><input name="notes"></div>
+  <div><button class="btn primary">Record waste</button></div></form></div>
+<div class="card"><div class="card-head"><h3>Recent waste</h3><a class="small" href="/stock/movements?kind=waste">See all &amp; filter →</a></div><ul class="list"><% for (const w of recent) { %><li><div class="grow"><b><%= w.qty %> × <%= w.product_name %></b> · <%= titleCase(w.reason || '') %><div class="small muted"><%= w.loc_name %> · <%= w.user_name || '' %> · <%= fmtDateTime(w.occurred_at) %></div></div></li><% } %></ul></div>
+</div>

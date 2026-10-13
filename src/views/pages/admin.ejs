@@ -1,0 +1,32 @@
+<div class="page-head"><div><h1>Admin &amp; Settings</h1><p>Company settings, branding, attendance and payroll rules, integrations and logs.</p></div>
+  <div class="actions"><a class="btn" href="/access"><%- icon('key') %>Access &amp; roles</a><a class="btn" href="/admin/security"><%- icon('lock') %>Security log</a><a class="btn" href="/admin/audit">Audit log</a><a class="btn" href="/admin/products">Menu &amp; prices</a><a class="btn" href="/admin/vendors">Suppliers</a><a class="btn" href="/announcements">Notice board</a><a class="btn" href="/checklists/templates">Checklist templates</a></div></div>
+<div class="kpis"><% for (const [k, l] of [['users','Active staff'],['sites','Sites'],['machines','Machines'],['sales','Sales records'],['runs','Checklists'],['audits','Audit entries']]) { %><div class="kpi"><div class="label"><%= l %></div><div class="value"><%= num(stats[k]) %></div></div><% } %></div>
+<div class="grid g3">
+  <form method="post" action="/admin/settings" enctype="multipart/form-data" class="span2 stack"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <% for (const [group, list] of SETTINGS) { %>
+    <div class="card"><h3><%= group %></h3>
+      <% if (group === 'Company & branding') { %>
+        <div class="product-tile" style="margin-bottom:14px"><img src="<%= brand.logo %>" alt="" style="border-radius:14px;background:#fff;object-fit:contain"><div><label>Logo</label><input type="file" name="brand_logo_file" accept="image/png,image/jpeg,image/webp" <%= can('settings.manage') ? '' : 'disabled' %>></div></div>
+      <% } %>
+      <div class="form-row">
+      <% for (const [k, l, t, hint] of list) { %><div><label><%= l %><% if (hint) { %> <span class="hint">— <%= hint %></span><% } %></label>
+        <% if (t.startsWith('select:')) { %><select name="<%= k %>" <%= can('settings.manage') ? '' : 'disabled' %>><% for (const o of t.slice(7).split('|')) { %><option value="<%= o %>" <%= selected(values[k], o) %>><%= titleCase(o) %></option><% } %></select>
+        <% } else { %><input type="<%= t %>" step="any" name="<%= k %>" value="<%= values[k] %>" <%= can('settings.manage') ? '' : 'disabled' %>><% } %></div><% } %>
+      </div></div>
+    <% } %>
+    <% if (can('settings.manage')) { %><div><button class="btn primary lg">Save settings</button></div><% } else { %><p class="small muted">Only the Owner can change company settings.</p><% } %>
+  </form>
+  <div class="stack">
+    <div class="card"><h3>Integrations</h3>
+      <div class="row-item"><div class="grow">Supplier machine portal</div><a class="btn sm" href="<%= machinePortalUrl %>" target="_blank" rel="noopener">Open ↗</a></div>
+      <div class="row-item"><div class="grow">Email alerts (SMTP)</div><%- integrations.email ? badge('ok','On') : badge('pending','Off') %></div>
+      <div class="row-item"><div class="grow">SMS alerts (webhook)</div><%- integrations.sms ? badge('ok','On') : badge('pending','Off') %></div>
+      <div class="row-item"><div class="grow">Ask Swaggers AI (Claude)</div><%- integrations.ai ? badge('ok','On') : badge('pending','Off') %></div>
+      <div class="row-item"><div class="grow">HTTPS base URL</div><%- integrations.https ? badge('ok','Yes') : badge('warn','No') %></div>
+      <p class="small muted">Email, SMS and AI keys live in the server's <code>.env</code> file — see README.</p></div>
+    <div class="card"><h3>Data &amp; backups</h3><dl class="dl"><dt>Database</dt><dd><%= (dbSize / 1048576).toFixed(1) %> MB</dd><dt>Last backup</dt><dd><%= lastBackup ? fmtDateTime(lastBackup) : 'never' %></dd></dl>
+      <p class="small muted">Nightly backup at 02:00, 30 days kept. Audit and security logs are append-only.</p>
+      <% for (const b of backups) { %><div class="small"><code><%= b %></code></div><% } %>
+      <% if (can('settings.manage')) { %><div class="actions" style="margin-top:10px"><form method="post" action="/admin/backup"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn sm">Back up now</button></form><form method="post" action="/admin/run-jobs"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn sm">Run automation checks</button></form></div><% } %></div>
+  </div>
+</div>

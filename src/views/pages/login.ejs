@@ -1,0 +1,34 @@
+<div class="auth-split">
+  <section class="auth-art">
+    <div class="logo-tile"><img src="<%= brand.logo %>" alt="<%= businessName %>"></div>
+    <div class="copy"><h1>Every machine. Every site. One team.</h1>
+    <p>The <%= businessName %> staff portal — checklists, stock, faults, cash-ups, rosters and pay, all in one place. Hot &amp; fresh, 24/7.</p></div>
+    <div class="stage"><img class="machine-hero" src="/img/machine.png" alt="Swaggers Pizza 24/7 vending machine"></div>
+    <div class="facts"><span>Geofenced clock-in</span><span>Live alerts</span><span>Africa/Accra time</span></div>
+  </section>
+  <section class="auth-form">
+    <div class="card">
+      <div class="eyebrow"><%= brand.tagline %></div>
+      <h2 style="font-size:1.6rem;margin:6px 0 4px">Welcome back</h2>
+      <p class="muted" style="margin-bottom:20px">Sign in with your own staff account.</p>
+      <% if (typeof timedOut !== 'undefined' && timedOut) { %><div class="flash info">You were signed out after 2 hours of inactivity.</div><% } %>
+      <% if (typeof error !== 'undefined') { %><div class="flash error"><%= error %></div><% } %>
+      <form method="post" action="/login" class="form">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div><label for="email">Username, email or staff number</label><input id="email" name="email" type="text" autocomplete="username" autocapitalize="none" value="<%= email %>" required autofocus></div>
+        <div><label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" required></div>
+        <button class="btn primary lg block"><%- icon('login') %>Sign in</button>
+      </form>
+      <% if (typeof demo !== 'undefined' && demo && demo.users.length) { %>
+        <hr>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap"><b style="font-size:13px">Demo accounts</b><span class="small muted">Password for all: <code><%= demo.password %></code></span></div>
+        <div class="demo-grid">
+          <% for (const d of demo.users) { %><button type="button" data-demo-user="<%= d.username %>" data-demo-pass="<%= demo.password %>"><b><%= d.username %></b><span><%= roleLabel(d.role) %></span></button><% } %>
+        </div>
+        <p class="small muted" style="margin:10px 0 0">Tap an account to sign in. Switch demo mode off in Admin → Settings before going live.</p>
+      <% } else { %>
+        <p class="small muted center" style="margin-top:18px">Never share your password. Forgot it? Ask your Operations Manager to reset it.</p>
+      <% } %>
+    </div>
+  </section>
+</div>

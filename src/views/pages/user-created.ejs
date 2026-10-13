@@ -1,0 +1,5 @@
+<div class="card" style="max-width:560px"><h2><%= typeof reset !== 'undefined' ? 'Password reset' : 'Account created' %></h2>
+  <p>Give these sign-in details to <b><%= name %></b> privately (in person or by direct message). They must change the password on first sign-in.</p>
+  <dl class="dl" style="font-size:16px"><dt>Portal</dt><dd>staff.swaggerspizza.com</dd><dt>Sign in</dt><dd><code><%= email %></code></dd><dt>Temporary password</dt><dd><code style="font-size:17px"><%= temp %></code></dd></dl>
+  <div class="callout bad" style="margin-top:14px">This password is shown only once and is not stored in readable form.</div>
+  <a class="btn primary" href="/users">Back to staff</a></div>

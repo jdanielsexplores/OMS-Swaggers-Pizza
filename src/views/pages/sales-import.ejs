@@ -1,0 +1,5 @@
+<div class="card" style="max-width:760px"><h2>Import supplier orders (CSV, optional)</h2>
+<p>Export transactions from the machine portal or payment provider and upload them here. Duplicate order/payment references are skipped automatically.</p>
+<p class="small">Columns (header row required): <code>sold_at, machine_code, sku, qty, amount, payment_ref, payment_status, dispense_status, order_ref</code><br>Example: <code>2026-10-12 12:41,SWG-KIA-01,PZ-MEAT,1,85,MP7F3A21C9,confirmed,dispensed,ORD-1029</code></p>
+<form method="post" enctype="multipart/form-data" class="form"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="file" name="file" accept=".csv,text/csv" required><div><button class="btn primary">Import</button></div></form>
+<p class="small muted">Machines that support telemetry can post sales directly to the Machine API instead — see the README.</p></div>

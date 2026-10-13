@@ -1,0 +1,31 @@
+<div class="page-head"><div><h1>Roster</h1><p>Week of <%= fmtDate(start) %>. Opening target ~07:00; each site's approved hours are on its site page.</p></div>
+  <div class="actions"><a class="btn" href="?week=<%= addDays(start, -7) %>">← Prev</a><a class="btn" href="/roster">This week</a><a class="btn" href="?week=<%= addDays(start, 7) %>">Next →</a><a class="btn" href="/attendance">Attendance</a><a class="btn" href="/handover">Handovers</a><a class="btn" href="/leave">Leave</a></div></div>
+<% for (const s of sites) { %>
+<div class="card flush" style="margin-bottom:14px"><div class="card-head"><h3><%= s.name %></h3><span class="small muted"><%= s.opening_time %>–<%= s.closing_time %></span></div>
+  <div class="table-wrap"><table class="table"><thead><tr><% for (const d of days) { %><th style="<%= d === today() ? 'color:var(--brand-600)' : '' %>"><%= new Date(d + 'T12:00:00Z').toLocaleDateString('en-GB', { weekday: 'short' }) %> <%= d.slice(8) %></th><% } %></tr></thead>
+  <tbody><tr><% for (const d of days) { const list = shifts.filter(x => x.site_id === s.id && x.shift_date === d); %>
+    <td style="min-width:140px"><% for (const x of list) { %>
+      <div style="border:1px solid var(--line);border-left:3px solid <%= x.status === 'cancelled' ? 'var(--muted)' : x.status === 'missed' ? 'var(--bad)' : x.clock_in ? 'var(--ok)' : 'var(--brand)' %>;border-radius:8px;padding:6px 8px;margin-bottom:6px;<%= x.status === 'cancelled' ? 'opacity:.45;text-decoration:line-through' : '' %>">
+        <b class="small"><%= x.user_name %></b><div class="small"><%= x.start_time %>–<%= x.end_time %></div><div class="small muted"><%= titleCase(x.shift_type) %><%= x.clock_in ? ' · in ' + fmtTime(x.clock_in) : '' %></div>
+        <% if (can('roster.manage') && x.status === 'scheduled') { %><form method="post" action="/roster/<%= x.id %>/cancel" data-confirm="Cancel this shift?"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn ghost sm" style="padding:0;font-size:11px;color:var(--bad)">cancel</button></form><% } %>
+      </div><% } %>
+      <% for (const l of leave.filter(l => d >= l.start_date && d <= l.end_date)) { %><div class="small badge violet"><%= l.name.split(' ')[0] %> on leave</div><% } %></td>
+  <% } %></tr></tbody></table></div></div>
+<% } %>
+<% if (can('roster.manage')) { %>
+<div class="card" style="max-width:900px"><h3>Add shift</h3>
+  <form method="post" action="/roster" class="form"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="week" value="<%= start %>">
+    <div class="form-row">
+      <div><label>Staff</label><select name="user_id" required><% for (const u of staff) { %><option value="<%= u.id %>"><%= u.name %> — <%= roleLabel(u.role) %></option><% } %></select></div>
+      <div><label>Site</label><select name="site_id" required><% for (const s of sites) { %><option value="<%= s.id %>"><%= s.name %></option><% } %></select></div>
+      <div><label>Machine</label><select name="machine_id"><option value="">—</option><% for (const m of machines) { %><option value="<%= m.id %>"><%= m.code %></option><% } %></select></div>
+    </div>
+    <div class="form-row">
+      <div><label>Date</label><input type="date" name="shift_date" value="<%= today() %>" required></div>
+      <div><label>Start</label><input type="time" name="start_time" value="07:00" required></div><div><label>End</label><input type="time" name="end_time" value="15:00" required></div>
+      <div><label>Type</label><select name="shift_type"><option value="opening">Opening</option><option value="day">Day</option><option value="closing">Closing</option><option value="full">Full day</option><option value="restock">Restock run</option></select></div>
+      <div><label>Repeat for days</label><input type="number" name="repeat_days" value="1" min="1" max="14"></div>
+    </div>
+    <div><label>Duties</label><div class="chips"><% for (const d of ['opening','customer','cleaning','refill','stock','closing']) { %><label class="check badge" style="padding:6px 10px"><input type="checkbox" name="duties" value="<%= d %>"> <%= titleCase(d) %></label><% } %></div></div>
+    <div><button class="btn primary">Add shift(s)</button> <span class="small muted">Skips days with approved leave or clashing shifts. Staff are notified.</span></div></form></div>
+<% } %>

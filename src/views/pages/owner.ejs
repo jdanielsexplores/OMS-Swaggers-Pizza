@@ -1,0 +1,66 @@
+<%- CHART_JS %>
+<% const ch = (a, b) => b ? ((a - b) / Math.abs(b) * 100) : null; const arrow = (v) => v == null || Math.abs(v) > 500 ? '' : (v >= 0 ? '▲ ' : '▼ ') + Math.abs(v).toFixed(0) + '% vs prior ' + days + 'd'; %>
+<div class="page-head"><div><h1>Owner's View</h1><p><%= fmtDate(from) %> – <%= fmtDate(to) %> · all <%= sitesCount.active %> active sites<%= sitesCount.planning ? ` · ${sitesCount.planning} in planning` : '' %></p></div>
+  <div class="actions">
+    <div class="tabs" style="margin:0;border:0"><% for (const d of [7,30,90]) { %><a href="?days=<%= d %>" class="<%= d === days ? 'active' : '' %>"><%= d %> days</a><% } %></div>
+    <form method="post" action="/owner/summary" class="inline"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn" <%= aiOn ? '' : 'title="Add ANTHROPIC_API_KEY to enable"' %>><%- icon('sparkles') %>AI brief</button></form>
+    <a class="btn" href="/reports">Reports</a>
+  </div></div>
+
+<div class="kpis">
+  <div class="kpi"><div class="label">Sales revenue</div><div class="value"><%= money(fin.salesRev, 0) %></div><div class="sub"><%= arrow(ch(fin.salesRev, finPrev.salesRev)) %></div></div>
+  <div class="kpi"><div class="label">Gross profit</div><div class="value"><%= money(fin.gross, 0) %></div><div class="sub"><%= pct(fin.salesRev ? fin.gross / fin.salesRev * 100 : null) %> gross margin</div></div>
+  <div class="kpi <%= fin.net < 0 ? 'bad' : 'ok' %>"><div class="label">Net profit</div><div class="value"><%= money(fin.net, 0) %></div><div class="sub"><%= pct(fin.margin) %> net margin · <%= arrow(ch(fin.net, finPrev.net)) %></div><a class="cover" href="/finance"></a></div>
+  <div class="kpi"><div class="label">Pizzas sold</div><div class="value"><%= num(sales.units) %></div><div class="sub"><%= money(sales.units ? sales.revenue / sales.units : 0) %> avg price · <%= num(sales.units / days, 0) %>/day</div></div>
+  <div class="kpi <%= fin.wasteCost / (fin.cogs || 1) > .05 ? 'warn' : '' %>"><div class="label">Waste cost</div><div class="value"><%= money(fin.wasteCost, 0) %></div><div class="sub"><%= pct(fin.cogs ? fin.wasteCost / fin.cogs * 100 : null, 1) %> of cost of goods</div></div>
+  <div class="kpi <%= inc.critical ? 'bad' : '' %>"><div class="label">Incidents</div><div class="value"><%= inc.open || 0 %> open</div><div class="sub">avg fix <%= duration(inc.avg_resolve_mins) %> · ack <%= duration(inc.avg_ack_mins) %></div><a class="cover" href="/incidents"></a></div>
+  <div class="kpi"><div class="label">Customers</div><div class="value"><%= avgRating ? avgRating + '★' : '—' %></div><div class="sub"><%= openCases %> open cases</div><a class="cover" href="/customers"></a></div>
+  <div class="kpi <%= unverified ? 'warn' : '' %>"><div class="label">Cash reconciliation</div><div class="value"><%= money(closeVariance, 0) %></div><div class="sub">variance · <%= unverified %> unverified close-outs</div><a class="cover" href="/sales"></a></div>
+</div>
+
+<div class="grid g3">
+  <div class="card span2"><h3>Revenue trend</h3>
+    <%- chart({ type: 'line', data: { labels: trend.map(t => fmtDate(t.day, {year:false})), datasets: [{ label: 'Revenue', data: trend.map(t => Math.round(t.revenue)), borderColor: '#d9480f', backgroundColor: 'rgba(217,72,15,.12)', fill: true, tension: .3, pointRadius: 2 }] } }) %></div>
+  <div class="card"><h3>Flavour mix</h3>
+    <%- chart({ type: 'doughnut', data: { labels: byProduct.map(p => p.name), datasets: [{ data: byProduct.map(p => p.units), backgroundColor: byProduct.map(p => p.colour || '#d9480f'), borderWidth: 0 }] }, options: { cutout: '62%' } }) %>
+    <table class="table" style="margin-top:8px"><% for (const p of byProduct) { %><tr><td><%= p.name %></td><td class="num"><%= num(p.units) %></td><td class="num"><%= pct(p.revenue ? (p.revenue - p.cogs) / p.revenue * 100 : null) %> margin</td></tr><% } %></table></div>
+</div>
+
+<div class="card flush" style="margin-top:16px">
+  <div class="card-head"><h3>Location league table</h3><span class="small muted">Where to invest, where to intervene</span></div>
+  <div class="table-wrap"><table class="table responsive">
+    <thead><tr><th>Site</th><th class="num">Revenue</th><th class="num">Pizzas</th><th class="num">Per day</th><th class="num">Uptime</th><th class="num">Waste %</th><th class="num">Checklists</th><th class="num">Faults (30d)</th></tr></thead>
+    <tbody><% for (const s of league) { %>
+      <tr><td data-label="Site"><a href="/sites/<%= s.id %>"><b><%= s.name %></b></a><div class="small muted"><%= titleCase(s.type) %></div></td>
+        <td class="num" data-label="Revenue"><%= money(s.revenue, 0) %></td><td class="num" data-label="Pizzas"><%= num(s.units) %></td><td class="num" data-label="Per day"><%= money(s.revenue / days, 0) %></td>
+        <td class="num" data-label="Uptime"><span style="color:<%= s.uptime == null ? '' : s.uptime < 95 ? 'var(--bad)' : 'var(--ok)' %>"><%= pct(s.uptime, 1) %></span></td>
+        <td class="num" data-label="Waste %"><span style="color:<%= s.wastePct > 5 ? 'var(--bad)' : '' %>"><%= pct(s.wastePct, 1) %></span></td>
+        <td class="num" data-label="Checklists"><%= pct(s.compliance) %></td><td class="num" data-label="Faults"><%= s.faults %></td></tr>
+    <% } %></tbody></table></div>
+</div>
+
+<div class="grid g2" style="margin-top:16px">
+  <div class="card">
+    <div class="card-head"><h3>Decisions waiting for you</h3><a href="/approvals" class="small">All approvals</a></div>
+    <% if (!approvals.length) { %><div class="empty">No pending approvals.</div><% } %>
+    <ul class="list"><% for (const a of approvals) { %><li><%- badge(a.required_role === 'owner' ? 'critical' : 'info', a.required_role === 'owner' ? 'Owner' : 'Manager') %><div class="grow"><a href="/approvals/<%= a.id %>"><b><%= a.title %></b></a><div class="small muted"><%= a.requester %> · <%= ago(a.created_at) %><%= a.amount ? ' · ' + money(a.amount) : '' %></div></div></li><% } %></ul>
+  </div>
+  <div class="card">
+    <h3>Machine reliability</h3>
+    <table class="table"><thead><tr><th>Machine</th><th class="num">Uptime</th><th class="num">Faults 30d</th><th>Status</th></tr></thead><tbody>
+    <% for (const m of uptime.sort((a, b) => b.faults_30d - a.faults_30d).slice(0, 6)) { %><tr><td><a href="/machines/<%= m.id %>"><%= m.code %></a><div class="small muted"><%= m.site_name %></div></td><td class="num"><%= pct(m.uptime, 1) %></td><td class="num" style="<%= m.faults_30d >= 3 ? 'color:var(--bad);font-weight:700' : '' %>"><%= m.faults_30d %></td><td><%- badge(m.status) %></td></tr><% } %>
+    </tbody></table>
+    <p class="small muted" style="margin:8px 0 0">3+ faults in 30 days → ask the Ops Manager for a root-cause action with the supplier (SOP-16).</p>
+  </div>
+</div>
+
+<div class="card flush" style="margin-top:16px">
+  <div class="card-head"><h3>Top staff performance</h3><a class="small" href="/leaderboard">Full leaderboard with filters →</a></div>
+  <div class="table-wrap"><table class="table responsive">
+    <thead><tr><th>Staff</th><th class="num">Score</th><th class="num">Shifts</th><th class="num">Attendance</th><th class="num">Checklists</th><th class="num">Avg score</th><th class="num">Late (min)</th><th class="num">Overdue tasks</th><th class="num">Training</th></tr></thead>
+    <tbody><% for (const s of scorecard) { %>
+      <tr><td data-label="Staff"><a href="/users/<%= s.id %>"><b><%= s.name %></b></a><div class="small muted"><%= roleLabel(s.role) %></div></td>
+      <td class="num" data-label="Score"><b style="color:<%= s.score == null ? '' : s.score >= 85 ? 'var(--ok)' : s.score >= 70 ? 'var(--warn)' : 'var(--bad)' %>"><%= s.score == null ? '—' : Math.round(s.score) %></b></td>
+      <td class="num" data-label="Shifts"><%= s.shifts %></td><td class="num" data-label="Attendance"><%= pct(s.attendance) %></td><td class="num" data-label="Checklists"><%= s.checklists %></td><td class="num" data-label="Avg score"><%= s.avg_score == null ? '—' : s.avg_score + '%' %></td><td class="num" data-label="Late"><%= s.late_mins %></td><td class="num" data-label="Overdue"><%= s.tasks_overdue %></td><td class="num" data-label="Training"><%= s.modules_passed %></td></tr>
+    <% } %></tbody></table></div>
+</div>
